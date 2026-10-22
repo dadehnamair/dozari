@@ -30,11 +30,13 @@ export async function startBackgroundNotify(): Promise<void> {
   try {
     if (Number(Platform.Version) >= 33) await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS' as never);
     const token = await session.token();
-    if (!token) return;
+    if (!token) { console.warn('[DozariIrnoti] no session token'); return; }
     mod.schedule(BASE_URL, token);
     // Instant push where Google is reachable; the scheduled check above stays as the fallback.
     // Preferred route: the IRNoti SDK registers the device itself, we only tell it which player this is (the server decides the id).
-    const irnoti = (await callJson('/push/irnoti', 'GET', undefined, token).catch(() => null)) as { externalId?: string } | null;
+    const irnoti = (await callJson('/push/irnoti', 'GET', undefined, token).catch((e) => { console.warn('[DozariIrnoti] GET /push/irnoti failed', String(e)); return null; })) as { externalId?: string } | null;
+    if (!irnoti?.externalId) console.warn('[DozariIrnoti] no externalId from server');
+    else if (!mod.irnotiIdentify) console.warn('[DozariIrnoti] native irnotiIdentify missing');
     if (irnoti?.externalId && mod.irnotiIdentify?.(irnoti.externalId)) return;
     // Builds or servers without IRNoti: hand our own FCM token to the server (direct FCM).
     const fcm = await mod.fcmToken?.().catch(() => null);

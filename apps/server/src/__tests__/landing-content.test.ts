@@ -1,5 +1,7 @@
+import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';
+import { registerLandingAdminRoutes } from '../landing/routes.js';
 import { LandingService, isSlug, slugify } from '../landing/service.js';
 import { createMemoryLandingStore } from '../landing/store.js';
 import { SettingsService } from '../settings/service.js';
@@ -103,5 +105,42 @@ describe('landing content', () => {
       verify: { google: 'abc_123-XYZ', bing: null, yandex: null },
       analytics: { scriptUrl: 'https://stats.example.ir/script.js', siteId: 'abcd-1234' },
     });
+  });
+});
+
+describe('store reviews', () => {
+  const review = { authorName: 'علی', bodyFa: 'بازی خوبیه', rating: 5, marketFa: 'کافه‌بازار', sourceUrl: 'https://cafebazaar.ir/app/ir.dozari', isActive: true };
+
+  it('publishes only active reviews, in order, with a safe link', async () => {
+    const landing = new LandingService(createMemoryLandingStore());
+    await landing.reviews.add(review);
+    await landing.reviews.add({ ...review, authorName: 'پنهان', isActive: false });
+    await landing.reviews.add({ ...review, authorName: 'بدون ستاره', rating: null, sourceUrl: 'javascript:alert(1)' });
+    const app = buildServer({ landing, settings: new SettingsService(createMemorySettingsStore()) });
+    const { reviews } = (await app.inject({ method: 'GET', url: '/public/landing' })).json();
+    expect(reviews).toEqual([
+      { id: expect.any(String), author: 'علی', body: 'بازی خوبیه', rating: 5, market: 'کافه‌بازار', url: 'https://cafebazaar.ir/app/ir.dozari' },
+      { id: expect.any(String), author: 'بدون ستاره', body: 'بازی خوبیه', rating: null, market: 'کافه‌بازار', url: null },
+    ]);
+  });
+
+  it('takes the admin form as text: blank stars/link mean none, bad values are refused, and a patch keeps the other fields', async () => {
+    const landing = new LandingService(createMemoryLandingStore());
+    const g = Fastify();
+    registerLandingAdminRoutes(g, landing, () => undefined);
+    const post = (payload: object) => g.inject({ method: 'POST', url: '/admin/landing/reviews', payload });
+    expect((await post({ authorName: 'رضا', bodyFa: 'عالیه', marketFa: 'مایکت', rating: '', sourceUrl: '' })).statusCode).toBe(201);
+    expect((await post({ authorName: 'سارا', bodyFa: 'خوبه', marketFa: 'بازار', rating: '4', sourceUrl: 'https://myket.ir/app/x' })).statusCode).toBe(201);
+    expect((await post({ authorName: 'x', bodyFa: 'خوبه', marketFa: 'بازار', rating: '6' })).statusCode).toBe(400);
+    expect((await post({ authorName: 'x', bodyFa: 'خوبه', marketFa: 'بازار', sourceUrl: 'javascript:alert(1)' })).statusCode).toBe(400);
+    const [first, second] = await landing.reviews.list();
+    if (!first || !second) throw new Error('reviews missing');
+    expect(first).toMatchObject({ rating: null, sourceUrl: null });
+    expect(second.rating).toBe(4);
+    expect((await g.inject({ method: 'PATCH', url: `/admin/landing/reviews/${second.id}`, payload: { isActive: false } })).statusCode).toBe(200);
+    expect((await landing.reviews.list())[1]).toMatchObject({ rating: 4, isActive: false, marketFa: 'بازار' });
+    expect((await g.inject({ method: 'PATCH', url: `/admin/landing/reviews/${second.id}`, payload: { rating: '' } })).statusCode).toBe(200);
+    expect((await landing.reviews.list())[1]?.rating).toBeNull();
+    expect((await g.inject({ method: 'PATCH', url: '/admin/landing/reviews/00000000-0000-7000-8000-000000000000', payload: { isActive: true } })).statusCode).toBe(404);
   });
 });

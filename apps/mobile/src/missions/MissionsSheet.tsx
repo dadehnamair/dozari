@@ -9,6 +9,7 @@ import { EmptyNote } from '../components/EmptyState';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { claimProfileTask, fetchProfileTasks } from '../social/profileTasksApi';
+import { openBazaarReviewForm } from '../review/nativeReview';
 import { missionRows } from './model';
 import type { MissionAvailability, MissionGo, MissionRow } from './model';
 import { TEXT_RIGHT } from '../theme/direction';
@@ -45,7 +46,11 @@ export function MissionsSheet({ avail, links, onGo, onClose, onChanged }: { avai
   const go = (row: MissionRow) => {
     if (row.go !== 'link') return onGo(row.go);
     const url = links(row.task.key);
-    if (url) void Linking.openURL(url).catch(() => undefined);
+    if (url) {
+      const alt = avail.fallback?.(row.task.key) ?? null;
+      if (openBazaarReviewForm(url)) return void setVisited((cur) => new Set(cur).add(row.task.key));
+      void Linking.openURL(url).catch(() => (alt ? Linking.openURL(alt).catch(() => undefined) : undefined));
+    }
     setVisited((cur) => new Set(cur).add(row.task.key));
   };
 

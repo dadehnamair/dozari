@@ -28,10 +28,12 @@ export interface TriviaStore {
   /** Approved questions of these tracks, optionally of one topic (the pool a game draws from). */
   approved(opts: { topicId?: string; tracks: readonly AgeTrack[]; limit: number }): Promise<TriviaQuestion[]>;
   /** Topics that have approved questions in these tracks, with the counts, in admin order. */
-  topicsWithQuestions(tracks: readonly AgeTrack[]): Promise<{ id: string; nameFa: string; questions: number }[]>;
+  topicsWithQuestions(tracks: readonly AgeTrack[]): Promise<{ id: string; nameFa: string; iconKey: string | null; questions: number }[]>;
   /** Every active topic with its approved-question count in these tracks (0 included), in admin order. */
-  topicCounts(tracks: readonly AgeTrack[]): Promise<{ id: string; nameFa: string; questions: number }[]>;
+  topicCounts(tracks: readonly AgeTrack[]): Promise<{ id: string; nameFa: string; iconKey: string | null; questions: number }[]>;
   topicName(topicId: string): Promise<string | null>;
+  /** Name and bot emoji of a topic (group messages). */
+  topicMeta(topicId: string): Promise<{ nameFa: string; emoji: string | null } | null>;
 }
 
 type Row = typeof triviaQuestions.$inferSelect;
@@ -96,23 +98,27 @@ export function createDbTriviaStore(db: Db): TriviaStore {
     },
     async topicCounts(tracks) {
       const rows = await db
-        .select({ id: puzzleTopics.id, nameFa: puzzleTopics.nameFa, n: sql<number>`COUNT(${triviaQuestions.id})` })
+        .select({ id: puzzleTopics.id, nameFa: puzzleTopics.nameFa, iconKey: puzzleTopics.iconKey, n: sql<number>`COUNT(${triviaQuestions.id})` })
         .from(puzzleTopics)
         .leftJoin(triviaQuestions, and(eq(triviaQuestions.topicId, puzzleTopics.id), eq(triviaQuestions.status, 'approved'), inArray(triviaQuestions.ageTrack, [...tracks])))
         .where(eq(puzzleTopics.isActive, true))
-        .groupBy(puzzleTopics.id, puzzleTopics.nameFa, puzzleTopics.sortOrder)
+        .groupBy(puzzleTopics.id, puzzleTopics.nameFa, puzzleTopics.iconKey, puzzleTopics.sortOrder)
         .orderBy(asc(puzzleTopics.sortOrder), asc(puzzleTopics.nameFa));
-      return rows.map((r) => ({ id: r.id, nameFa: r.nameFa, questions: Number(r.n) }));
+      return rows.map((r) => ({ id: r.id, nameFa: r.nameFa, iconKey: r.iconKey, questions: Number(r.n) }));
     },
     async topicsWithQuestions(tracks) {
       const rows = await db
-        .select({ id: puzzleTopics.id, nameFa: puzzleTopics.nameFa, n: count() })
+        .select({ id: puzzleTopics.id, nameFa: puzzleTopics.nameFa, iconKey: puzzleTopics.iconKey, n: count() })
         .from(puzzleTopics)
         .innerJoin(triviaQuestions, and(eq(triviaQuestions.topicId, puzzleTopics.id), eq(triviaQuestions.status, 'approved'), inArray(triviaQuestions.ageTrack, [...tracks])))
         .where(eq(puzzleTopics.isActive, true))
-        .groupBy(puzzleTopics.id, puzzleTopics.nameFa, puzzleTopics.sortOrder)
+        .groupBy(puzzleTopics.id, puzzleTopics.nameFa, puzzleTopics.iconKey, puzzleTopics.sortOrder)
         .orderBy(asc(puzzleTopics.sortOrder), asc(puzzleTopics.nameFa));
-      return rows.map((r) => ({ id: r.id, nameFa: r.nameFa, questions: Number(r.n) }));
+      return rows.map((r) => ({ id: r.id, nameFa: r.nameFa, iconKey: r.iconKey, questions: Number(r.n) }));
+    },
+    async topicMeta(topicId) {
+      const [r] = await db.select({ nameFa: puzzleTopics.nameFa, emoji: puzzleTopics.emoji }).from(puzzleTopics).where(eq(puzzleTopics.id, topicId));
+      return r ?? null;
     },
     async topicName(topicId) {
       const [r] = await db.select({ n: puzzleTopics.nameFa }).from(puzzleTopics).where(eq(puzzleTopics.id, topicId));
@@ -167,14 +173,17 @@ export function createMemoryTriviaStore(topics: Record<string, string> = {}): Tr
     },
     async topicsWithQuestions(tracks) {
       return Object.entries(topics)
-        .map(([id, nameFa]) => ({ id, nameFa, questions: rows.filter((r) => r.topicId === id && r.status === 'approved' && tracks.includes(r.ageTrack)).length }))
+        .map(([id, nameFa]) => ({ id, nameFa, iconKey: null, questions: rows.filter((r) => r.topicId === id && r.status === 'approved' && tracks.includes(r.ageTrack)).length }))
         .filter((t) => t.questions > 0);
     },
     async topicCounts(tracks) {
-      return Object.entries(topics).map(([id, nameFa]) => ({ id, nameFa, questions: rows.filter((r) => r.topicId === id && r.status === 'approved' && tracks.includes(r.ageTrack)).length }));
+      return Object.entries(topics).map(([id, nameFa]) => ({ id, nameFa, iconKey: null, questions: rows.filter((r) => r.topicId === id && r.status === 'approved' && tracks.includes(r.ageTrack)).length }));
     },
     async topicName(topicId) {
       return topics[topicId] ?? null;
+    },
+    async topicMeta(topicId) {
+      return topics[topicId] ? { nameFa: topics[topicId]!, emoji: null } : null;
     },
   };
 }

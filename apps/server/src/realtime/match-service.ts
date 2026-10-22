@@ -81,9 +81,18 @@ export interface MatchDeps {
   };
   /** A player left a running board on purpose (`manual`) or stayed away past the reconnect grace (`absent`): logged for the leave penalty. */
   onLeave?: (info: { userId: string; matchId: string; kind: 'manual' | 'absent' }) => void;
-  onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
+  onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']>; plays: readonly MatchPlay[] }) => void;
   /** A 2v2 ended: every player of both sides with the side they played (the duel hook only sees two players). */
-  onTeamEnded?: (info: { players: readonly { userId: string; side: 0 | 1 }[]; result: NonNullable<MatchState['result']> }) => void;
+  onTeamEnded?: (info: { players: readonly { userId: string; side: 0 | 1 }[]; result: NonNullable<MatchState['result']>; plays: readonly MatchPlay[] }) => void;
+}
+
+/** How one player did on the board in play when a match ended (for the stats log; the side-wide numbers belong to the whole side). */
+export interface MatchPlay {
+  userId: string;
+  puzzleId: string;
+  outcome: 'win' | 'loss' | 'draw';
+  groupsSolved: number;
+  mistakes: number;
 }
 
 interface Active {
@@ -706,6 +715,7 @@ export class MatchService {
       proposal: entry.proposals[v.you] ? { by: entry.proposals[v.you]!.by, itemIds: [...entry.proposals[v.you]!.itemIds] } : null,
       turnId: v.turnId,
       turnEndsAt: v.turnEndsAt,
+      turnStartsAt: v.turnStartsAt,
       status: inPrice ? 'playing' : v.status,
       result: inPrice ? null : v.result,
       priceRound: entry.pg ? this.priceViewFor(entry, v.you) : null,
@@ -1019,6 +1029,18 @@ export class MatchService {
     return pg.state.rounds[pg.state.index]?.actualRials ?? null;
   }
 
+  private playsOf(entry: Active, result: NonNullable<MatchState['result']>): MatchPlay[] {
+    const puzzleId = (entry.puzzles[entry.state.round] ?? entry.puzzles[0])?.id;
+    if (!puzzleId) return [];
+    return entry.state.players.map((p) => ({
+      userId: p.userId,
+      puzzleId,
+      outcome: result.winner === null ? ('draw' as const) : result.winner === p.side ? ('win' as const) : ('loss' as const),
+      groupsSolved: entry.state.solved.filter((g) => g.by === p.side).length,
+      mistakes: entry.state.mistakes[p.side],
+    }));
+  }
+
   private finish(entry: Active, final?: { result: NonNullable<MatchState['result']>; scores: [number, number] }) {
     entry.cancel?.();
     entry.cancel = null;
@@ -1039,14 +1061,14 @@ export class MatchService {
     const duel = entry.state.players.length === 2;
     if (result && duel) {
       try {
-        this.deps.onEnded?.({ players: [entry.state.players[0]!.userId, entry.state.players[1]!.userId], result });
+        this.deps.onEnded?.({ players: [entry.state.players[0]!.userId, entry.state.players[1]!.userId], result, plays: this.playsOf(entry, result) });
       } catch {
         /* a notification hook must never break the match flow */
       }
     }
     if (result && !duel) {
       try {
-        this.deps.onTeamEnded?.({ players: entry.state.players.map((p) => ({ userId: p.userId, side: p.side })), result });
+        this.deps.onTeamEnded?.({ players: entry.state.players.map((p) => ({ userId: p.userId, side: p.side })), result, plays: this.playsOf(entry, result) });
       } catch {
         /* same: a hook must never break the match flow */
       }

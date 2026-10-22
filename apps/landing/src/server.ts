@@ -4,7 +4,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { CommentTarget, ContentApi, LandingData, Post, PostSummary } from './api.js';
 import { flashOf } from './blocks.js';
 import { llmsFull, llmsTxt, ogCard, robots, sitemap, sitemapXsl } from './discovery.js';
-import { buildStatus, castMemberPage, glossaryPage, howToPage, modesPage, pressPage, rssFeed, securityTxt, sitemapPage, statsPage, statusPage } from './more.js';
+import { buildStatus, castMemberPage, glossaryPage, howToPage, modesPage, pressPage, reviewsPage, rssFeed, securityTxt, sitemapPage, statsPage, statusPage } from './more.js';
 import { aboutPage, agesPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, termsPage, unavailablePage } from './pages.js';
 import type { Site } from './seo.js';
 
@@ -19,7 +19,7 @@ const HTML = 'text/html; charset=utf-8';
 function siteOf(data: LandingData, siteUrl: string | undefined): Site {
   const s = data.site;
   const url = (siteUrl && siteUrl.trim() !== '' ? siteUrl.trim() : s.domains.landing ? `https://${s.domains.landing}` : 'http://localhost:3100').replace(/\/+$/, '');
-  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, iosApp: s.iosApp ?? null, baleBot: s.baleBot ?? null, telegramApp: s.telegramApp ?? null, badges: s.badges ?? [], ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
+  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, iosApp: s.iosApp ?? null, stores: s.stores, baleBot: s.baleBot ?? null, telegramApp: s.telegramApp ?? null, badges: s.badges ?? [], ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
 }
 
 /** Every published post (the API pages them at 50). */
@@ -73,7 +73,7 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
   app.get('/badges/:file', async (req, reply) => {
     const file = (req.params as { file: string }).file;
     const ext = file.endsWith('.svg') ? 'svg' : file.endsWith('.webp') ? 'webp' : 'png';
-    return asset('badges', ext, ext === 'svg' ? 'image/svg+xml' : `image/${ext}`, /^(enamad|samandehi|ersa|etehadieh|ircg|cafebazaar|myket)$/)(req, reply);
+    return asset('badges', ext, ext === 'svg' ? 'image/svg+xml' : `image/${ext}`, /^(enamad|samandehi|ersa|etehadieh|ircg|cafebazaar|myket|googleplay|appstore)$/)(req, reply);
   });
   app.get('/items/:file', asset('items', 'svg', 'image/svg+xml', /^[A-Za-z]+$/));
   // Promo banners (docs/design/banner, resized to webp) and the social card; favicons and the web-app icons.
@@ -159,7 +159,14 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     return send(reply, 200, aboutPage(siteOf(data, opts.siteUrl), data.cast));
   });
   app.get('/ages', async (_req, reply) => send(reply, 200, agesPage(siteOf(await api.landing(), opts.siteUrl))));
-  app.get('/download', async (_req, reply) => send(reply, 200, downloadPage(siteOf(await api.landing(), opts.siteUrl))));
+  app.get('/download', async (_req, reply) => {
+    const data = await api.landing();
+    return send(reply, 200, downloadPage(siteOf(data, opts.siteUrl), data.reviews ?? []));
+  });
+  app.get('/reviews', async (_req, reply) => {
+    const data = await api.landing();
+    return send(reply, 200, reviewsPage(siteOf(data, opts.siteUrl), data.reviews ?? []));
+  });
   app.get('/contact', async (_req, reply) => {
     const data = await api.landing();
     return send(reply, 200, contactPage(siteOf(data, opts.siteUrl), data.faq));

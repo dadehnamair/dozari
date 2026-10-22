@@ -1,5 +1,5 @@
-import type { CastMember, LandingData, PostSummary, PublicComment, ServerStatus, SiteStats } from './api.js';
-import { commentsSection, faDate, faInt, faNum } from './blocks.js';
+import type { CastMember, LandingData, StoreReview, PostSummary, PublicComment, ServerStatus, SiteStats } from './api.js';
+import { commentsSection, faDate, faInt, faNum, reviewsBlock } from './blocks.js';
 import type { Flash } from './blocks.js';
 import { escapeHtml } from './markdown.js';
 import { BANNERS, HOW_TO, castOf, img, layout, li, promo, webPage } from './pages.js';
@@ -43,6 +43,7 @@ export const STATIC_PAGES: { path: string; label: string; note: string; group: '
   { path: '/stats', label: 'آمار بازی', note: 'شمار واقعی کالا، قیمت، پازل و استان', group: 'live' },
   { path: '/status', label: 'وضعیت سرورها', note: 'الان همه چیز کار می‌کند؟', group: 'live' },
   { path: '/blog', label: 'وبلاگ', note: 'مقاله‌ها درباره‌ی قیمت‌های قدیمی', group: 'about' },
+  { path: '/reviews', label: 'نظر بازیکن‌ها', note: 'نظر کاربران در بازار، مایکت و بقیه‌ی مارکت‌ها', group: 'about' },
   { path: '/cast', label: 'آدم‌های بازار', note: 'شخصیت‌های بازی', group: 'about' },
   { path: '/about', label: 'درباره ما', note: 'قصه‌ی اسم و ایده‌ی بازی', group: 'about' },
   { path: '/press', label: 'رسانه و لوگو', note: 'تصویر، رنگ و متن آماده برای انتشار', group: 'about' },
@@ -138,6 +139,15 @@ export function statsPage(site: Site, stats: SiteStats | null, commentCount: num
 ${stats ? `<ul class="stg">${tiles.map(([n, label, note]) => `<li><b${n.includes('تا') ? ' style="font-size:32px"' : ''}>${n}</b><span>${escapeHtml(label)}</span><small>${escapeHtml(note)}</small></li>`).join('')}</ul>` : '<p>الان نمی‌توانیم آمار را از سرور بازی بگیریم؛ کمی بعد دوباره سر بزن. <a href="/status">وضعیت سرورها</a></p>'}
 <p>قیمت‌ها اسمی‌اند (همان عدد روی برچسب آن سال، بدون تعدیل تورم). برای دیدن وضعیت سرورها به <a href="/status">صفحه‌ی وضعیت</a> برو.</p>`;
   return page(site, { path: '/stats', title: `آمار بازی ${site.name}: کالا، قیمت، پازل`, description: `شمار واقعی کالاها، قیمت‌ها، پازل‌ها و استان‌های ${site.name}.`, crumbs: [home, { name: 'آمار' }], body });
+}
+
+/* ---- store reviews ---- */
+
+export function reviewsPage(site: Site, reviews: StoreReview[]): string {
+  const body = `<h1>نظر بازیکن‌های ${escapeHtml(site.name)}</h1><p>این نظرها را بازیکن‌ها در مارکت‌ها برای بازی گذاشته‌اند. هر کدام را با نام مارکت و در صورت امکان لینک صفحه‌ی اپ همان‌جا آورده‌ایم تا خودت هم ببینی.</p>
+${reviews.length ? reviewsBlock(reviews) : '<p>هنوز نظری اینجا نیست؛ بعد از دانلود، نظر خودت را در مارکت بنویس.</p>'}
+<p><a href="/download">دانلود ${escapeHtml(site.name)}</a></p>`;
+  return page(site, { path: '/reviews', title: `نظر بازیکن‌ها درباره‌ی ${site.name}`, description: `نظرهای بازیکن‌ها درباره‌ی ${site.name} در بازار، مایکت و بقیه‌ی مارکت‌ها.`, crumbs: [home, { name: 'نظر بازیکن‌ها' }], body });
 }
 
 /* ---- guides ---- */

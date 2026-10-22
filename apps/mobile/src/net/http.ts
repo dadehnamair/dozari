@@ -15,6 +15,9 @@ export class ApiError extends Error {
   }
 }
 
+/** The gateway answered for a server that is down or restarting (its own error page, so no JSON `error` code). The request never reached the app. */
+export const isGatewayDown = (err: unknown): boolean => err instanceof ApiError && [502, 503, 504].includes(err.status) && err.code === 'error';
+
 /** JSON call to the Dozari server; throws `ApiError` for non-2xx. `token` adds the guest session header. */
 export async function callJson(path: string, method: 'GET' | 'POST' | 'DELETE' | 'PUT', body?: unknown, token?: string): Promise<unknown> {
   const headers: Record<string, string> = clientHeaders();

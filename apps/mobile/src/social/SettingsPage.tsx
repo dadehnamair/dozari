@@ -28,6 +28,7 @@ import { fetchWorn } from '../shop/api';
 import { WorkshopProfileCard } from './AdultProfileCard';
 import { pageTop, safeTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { fetchPhone } from '../phone/api';
 import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -63,6 +64,11 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
   const [note, setNote] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  // The server's own word on the number, so the sign-in row hides even when the profile-task list is not loaded (or the task was never claimed).
+  const [serverPhoneVerified, setServerPhoneVerified] = useState(false);
+  useEffect(() => {
+    void fetchPhone().then((p) => setServerPhoneVerified(p.verified), () => undefined);
+  }, []);
   const [childrenOpen, setChildrenOpen] = useState(false);
   const [childCodeOpen, setChildCodeOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
@@ -114,7 +120,7 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
       rows: [
         { key: 'about', icon: 'lantern', tint: '#C9A3FF', label: t.about, onPress: () => setAboutOpen((v) => !v) },
         ...(baleOn ? [{ key: 'bale', icon: 'bolt', tint: '#FF7A3D', label: fa.bale.row, onPress: () => setBaleOpen(true) }] : []),
-        ...(phoneVerified ? [] : [{ key: 'phoneLogin', icon: 'phone', tint: '#7ED957', label: fa.phoneLogin.row, onPress: () => setLoginOpen(true) }]),
+        ...(phoneVerified || serverPhoneVerified ? [] : [{ key: 'phoneLogin', icon: 'phone', tint: '#7ED957', label: fa.phoneLogin.row, onPress: () => setLoginOpen(true) }]),
         ...(ageTracksOn ? [{ key: 'children', icon: 'medal', tint: '#FFAA7A', label: fa.guardian.childrenRow, onPress: () => setChildrenOpen(true) }, { key: 'childLogin', icon: 'key', tint: '#C9A3FF', label: fa.guardian.childLoginRow, onPress: () => setChildCodeOpen(true) }] : []),
         { key: 'out', icon: 'key', tint: '#FFAA7A', label: t.signOut, onPress: () => setAskOut(true) },
         { key: 'del', icon: 'lock', tint: '#FF4D8D', label: t.delete, tone: '#B3261E', onPress: () => setAskDelete(true) },

@@ -22,8 +22,9 @@ object Notifier {
     return manager.runningAppProcesses?.any { it.processName == context.packageName && it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND } == true
   }
 
-  fun show(context: Context, tag: String, title: String, text: String) {
-    if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+  /** True when the notification was posted; false when Android 13+ notifications are not allowed (callers must then not mark the event as shown). */
+  fun show(context: Context, tag: String, title: String, text: String): Boolean {
+    if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(CHANNEL, "اخبار دوزاری", NotificationManager.IMPORTANCE_DEFAULT))
     val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -38,5 +39,11 @@ object Notifier {
       .setAutoCancel(true)
       .build()
     NotificationManagerCompat.from(context).notify(tag, 0, notification)
+    return true
+  }
+
+  /** Remembers that a push for this kind of event arrived now, so the next background check does not announce the same event again. */
+  fun notePush(context: Context, tag: String) {
+    context.getSharedPreferences(PendingWorker.PREFS, Context.MODE_PRIVATE).edit().putLong("pushed:$tag", System.currentTimeMillis()).apply()
   }
 }

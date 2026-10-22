@@ -355,6 +355,41 @@ describe('self-hosted fonts', () => {
     expect((await mailApp.inject({ method: 'GET', url: '/contact' })).body).toContain('action="mailto:hi@mrdozari.ir"');
     expect((await app.inject({ method: 'GET', url: '/contact' })).body).not.toContain('action="mailto:');
   });
+
+  it('shows store reviews on the home page, the download page and /reviews, without any rating structured data', async () => {
+    const withReviews: LandingData = { ...DATA, reviews: [
+      { id: 'r1', author: 'علی', body: 'بازی <b>خوبیه</b>', rating: 4, market: 'کافه‌بازار', url: 'https://cafebazaar.ir/app/ir.dozari' },
+      { id: 'r2', author: 'سارا', body: 'عالیه', rating: null, market: 'مایکت', url: null },
+    ] };
+    const app = buildLanding({ api: fakeApi({}, [POST], {}, withReviews), siteUrl: 'https://mrdozari.ir' });
+    for (const url of ['/', '/download', '/reviews']) {
+      const html = (await app.inject({ method: 'GET', url })).body;
+      expect(html, url).toContain('بازی &lt;b&gt;خوبیه&lt;/b&gt;');
+      expect(html, url).toContain('href="https://cafebazaar.ir/app/ir.dozari"');
+      expect(html, url).toContain('aria-label="۴ از ۵"');
+      expect(html, url).not.toContain('<b>خوبیه</b>');
+      expect(html, url).not.toMatch(/AggregateRating|"Review"|reviewRating/);
+    }
+    expect((await app.inject({ method: 'GET', url: '/sitemap.xml' })).body).toContain('/reviews');
+    const none = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    expect((await none.inject({ method: 'GET', url: '/' })).body).not.toContain('بازیکن‌ها چی می‌گن');
+    const empty = await none.inject({ method: 'GET', url: '/reviews' });
+    expect(empty.statusCode).toBe(200);
+    expect(empty.body).toContain('هنوز نظری اینجا نیست');
+  });
+
+  it('links the Myket, Bazaar and Google Play listings with their logos once the admin sets them', async () => {
+    const withStores: LandingData = { ...DATA, site: { ...DATA.site, stores: { myket: 'https://myket.ir/app/ir.dozari', bazaar: null, googlePlay: null } } };
+    const app = buildLanding({ api: fakeApi({}, [POST], {}, withStores), siteUrl: 'https://mrdozari.ir' });
+    const dl = (await app.inject({ method: 'GET', url: '/download' })).body;
+    expect(dl).toContain('href="https://myket.ir/app/ir.dozari"');
+    expect(dl).toContain('/badges/myket.svg');
+    expect(dl).toContain('/badges/googleplay.svg');
+    expect(dl).toContain('/badges/appstore.svg');
+    expect((await app.inject({ method: 'GET', url: '/badges/googleplay.svg' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/badges/appstore.svg' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('href="https://myket.ir/app/ir.dozari"');
+  });
 });
 
 describe('terms page', () => {

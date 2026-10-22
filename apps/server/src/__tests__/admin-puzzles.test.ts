@@ -47,6 +47,22 @@ describe('hand-built puzzles in the admin panel', () => {
     expect(checkShape(sameLevel)).toBe('shape');
   });
 
+  it('marks a puzzle reviewed with a time, re-reviews it, and can clear the mark without touching its status', async () => {
+    const { app, h } = boot();
+    const id = (await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } })).json().id as string;
+    const first = async () => (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().puzzles[0];
+    expect(await first()).toMatchObject({ id, status: 'approved', reviewedAt: null });
+    const review = (payload: object) => app.inject({ method: 'PUT', url: `/admin/puzzles/${id}/review`, headers: h, payload });
+    expect((await review({})).json().ok).toBe(true);
+    const at = (await first()).reviewedAt as number;
+    expect(at).toBeGreaterThan(0);
+    expect(await first()).toMatchObject({ status: 'approved' });
+    expect((await review({ reviewed: true })).statusCode).toBe(200);
+    expect((await review({ reviewed: false })).json()).toEqual({ ok: true, reviewedAt: null });
+    expect((await first()).reviewedAt).toBeNull();
+    expect((await app.inject({ method: 'PUT', url: '/admin/puzzles/00000000-0000-7000-8000-0000000000ff/review', headers: h, payload: {} })).statusCode).toBe(404);
+  });
+
   it('swaps a product of a live puzzle in place and keeps it live', async () => {
     const { app, h } = boot();
     const id = (await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } })).json().id as string;

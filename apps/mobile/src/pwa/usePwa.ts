@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { deviceStore } from '../auth/storage';
-import { installBannerDue, installModeOf, isIosAgent, launchOf } from './logic';
+import { installBannerDue, installModeOf, isIosAgent, inviteLaunchOf, launchOf, tableLaunchOf } from './logic';
 import type { InstallMode, LaunchTarget } from './logic';
 
 /** What `public/index.html` keeps on `window` (it runs before the app, so no browser event is missed). */
@@ -109,4 +109,20 @@ export function takeLaunchTarget(): LaunchTarget | null {
   const { target, rest } = launchOf(win.location.search);
   if (win.location.search !== rest) win.history.replaceState(null, '', win.location.pathname + rest + win.location.hash);
   return target;
+}
+
+/** The friend's public ID from a bot invite link (`?go=invite&code=`), read once and removed from the address bar; call before `takeTableCode`. */
+export function takeInviteHandle(): string | null {
+  if (!WEB) return null;
+  const { handle, rest } = inviteLaunchOf(win.location.search);
+  if (win.location.search !== rest) win.history.replaceState(null, '', win.location.pathname + rest + win.location.hash);
+  return handle;
+}
+
+/** The private table a shared link asked for (`?go=table&code=`), read once and removed from the address bar; call before `takeLaunchTarget`. */
+export function takeTableCode(): string | null {
+  if (!WEB) return null;
+  const { code, rest } = tableLaunchOf(win.location.search);
+  if (win.location.search !== rest) win.history.replaceState(null, '', win.location.pathname + rest + win.location.hash);
+  return code;
 }

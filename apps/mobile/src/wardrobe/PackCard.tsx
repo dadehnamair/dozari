@@ -8,6 +8,11 @@ import { colors, fonts } from '../theme/colors';
 import { RadialFill } from './RadialFill';
 import { RARITY, rarityOf } from './rarity';
 import { actionFor, priceOf } from './tryOn';
+import { useTheme } from '../theme/themeStore';
+import { Plate } from '../duel/adultKit';
+
+/** Rarity badge colours on the adult card: a dark pill whose frame and text carry the rarity (design: «معمولی» silver). */
+const RARITY_ADULT = { c: { bd: '#8E939C', fg: '#C9CCD2' }, r: { bd: '#5E9E3C', fg: '#B8F08F' }, e: { bd: '#8A5FC4', fg: '#C9A2F7' }, l: { bd: '#E8B64A', fg: '#FFE9A8' } } as const;
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const grouped = (n: number): string => toPersianDigits(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '٬'));
@@ -17,11 +22,40 @@ const grouped = (n: number): string => toPersianDigits(String(n).replace(/\B(?=(
  * on the stage, the name, and the price button (gold = to buy, white = owned, green = worn). The level a locked item needs is a chip *inside* the picture.
  */
 export function PackCard({ item, on, onTry, onAct, onPay, realMoney }: { item: ShopItem; on: boolean; onTry: () => void; onAct: () => void; onPay: () => void; realMoney: boolean }) {
-  const r = RARITY[rarityOf(item)];
+  const adult = useTheme() === 'adult';
+  const rk = rarityOf(item);
+  const r = RARITY[rk];
   const action = actionFor(item);
   const locked = action === 'locked';
   const label = item.owned ? (item.equipped ? fa.shop.worn : fa.shop.wear) : priceOf(item) === 0 ? fa.shop.free : grouped(priceOf(item));
   const pay = !item.owned && priceOf(item) > 0;
+  if (adult) {
+    const ra = RARITY_ADULT[rk];
+    return (
+      <Pressable onPress={onTry} accessibilityRole="button" accessibilityLabel={item.titleFa} accessibilityState={{ selected: on }} style={styles.cardAdultBox}>
+        <Plate radius={16} border={on ? '#E8B64A' : '#8A5A16'} from="#17100C" to="#17100C" ledge={0} style={styles.cardAdult}>
+          <View style={styles.picAdult}>
+            <RadialFill stops={[[0, '#3A2A16'], [0.85, '#0E0A08']]} cy={0.4} r={0.7} />
+            <View style={styles.faceAdult}><Item icon={item.iconKey ?? 'magnifier'} /></View>
+            <View style={[styles.rarityAdult, { borderColor: ra.bd }]}><Text style={[styles.rarityTextAdult, { color: ra.fg }]}>{r.name}</Text></View>
+            {on ? <View style={styles.tickAdult}><Text style={styles.tickTextAdult}>✓</Text></View> : null}
+            {locked && item.blocked === 'LEVEL' ? <View style={styles.lock}><Text style={styles.lockText}>{fa.shop.needLevel(item.minLevel)}</Text></View> : null}
+          </View>
+          <Text style={styles.nameAdult} numberOfLines={1}>{item.titleFa}</Text>
+          <Pressable onPress={onAct} accessibilityRole="button" accessibilityLabel={item.owned ? (item.equipped ? fa.shop.takeOff : fa.shop.wear) : `${fa.shop.buy} ${item.titleFa}`} style={({ pressed }) => [styles.btnAdult, !item.owned ? styles.btnBuyAdult : item.equipped ? styles.btnWornAdult : null, locked ? styles.btnOff : null, pressed ? styles.pressed : null]}>
+            {!item.owned ? <GradientFill from="#FFF1B8" to="#8A5A16" mid={{ at: 0.4, color: '#E8B64A' }} /> : null}
+            {pay ? <View style={styles.payIcon}><Item icon={item.currency === 'gems' ? 'gem' : 'coin'} /></View> : null}
+            <Text style={[styles.btnTextAdult, !item.owned ? styles.btnTextBuyAdult : item.equipped ? styles.btnTextWornAdult : null]} numberOfLines={1}>{label}</Text>
+          </Pressable>
+          {realMoney && item.priceToman > 0 && !item.owned ? (
+            <Pressable onPress={onPay} accessibilityRole="button" accessibilityLabel={`${fa.shop.payMoney} ${item.titleFa}`} style={({ pressed }) => [styles.moneyAdult, pressed ? styles.pressed : null]}>
+              <Text style={styles.moneyTextAdult} numberOfLines={1}>{fa.shop.toman(item.priceToman)}</Text>
+            </Pressable>
+          ) : null}
+        </Plate>
+      </Pressable>
+    );
+  }
   return (
     <Pressable onPress={onTry} accessibilityRole="button" accessibilityLabel={item.titleFa} accessibilityState={{ selected: on }} style={[styles.card, on ? styles.cardOn : null]}>
       <View style={styles.pic}>
@@ -49,6 +83,23 @@ export function PackCard({ item, on, onTry, onAct, onPay, realMoney }: { item: S
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  cardAdultBox: { width: '48.5%' },
+  cardAdult: { padding: 8, gap: 6 },
+  picAdult: { height: 86, borderRadius: 10, borderWidth: 1.5, borderColor: '#5A3A1C', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  faceAdult: { width: 56, height: 56 },
+  rarityAdult: { position: 'absolute', top: 6, left: 6, paddingHorizontal: 8, borderRadius: 99, borderWidth: 1.5, backgroundColor: '#0E0A08' },
+  rarityTextAdult: { fontFamily: fonts.display, fontSize: 11, lineHeight: 18 },
+  tickAdult: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#000', backgroundColor: '#7ED957', alignItems: 'center', justifyContent: 'center' },
+  tickTextAdult: { fontFamily: fonts.display, fontSize: 13, lineHeight: 20, color: '#0E2A06' },
+  nameAdult: { fontFamily: fonts.display, fontSize: 15, lineHeight: 22, color: '#FFE9A8', textAlign: 'center' },
+  btnAdult: { height: 34, borderRadius: 10, borderWidth: 2, borderColor: '#B8822A', backgroundColor: '#0E0A08', overflow: 'hidden', flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  btnBuyAdult: { borderColor: '#000' },
+  btnWornAdult: { borderColor: '#5E9E3C', backgroundColor: '#1C3A12' },
+  btnTextAdult: { fontFamily: fonts.display, fontSize: 15, lineHeight: 24, color: '#FFE9A8' },
+  btnTextBuyAdult: { color: '#2A1606' },
+  btnTextWornAdult: { color: '#B8F08F' },
+  moneyAdult: { height: 28, borderRadius: 10, borderWidth: 2, borderColor: '#8A5A16', backgroundColor: '#17100C', alignItems: 'center', justifyContent: 'center' },
+  moneyTextAdult: { fontFamily: fonts.display, fontSize: 13, color: '#E8B64A' },
   card: { width: '48.5%', borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, padding: 6, paddingBottom: 8, gap: 4, ...lift(4) },
   cardOn: { borderColor: colors.candy.yellow, backgroundColor: '#FFF1C9' },
   pic: { height: 124, borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },

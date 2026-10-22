@@ -90,6 +90,6 @@ describe('pickBotNames', () => {
 describe('BOT_NAME_POOL size', () => {
   it('holds enough distinct names for a roster of several hundred bots', () => {
     expect(new Set(BOT_NAME_POOL).size).toBe(BOT_NAME_POOL.length);
-    expect(BOT_NAME_POOL.length).toBeGreaterThanOrEqual(400);
+    expect(BOT_NAME_POOL.length).toBeGreaterThanOrEqual(800);
   });
 });

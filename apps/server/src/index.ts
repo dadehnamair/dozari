@@ -5,6 +5,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_UNLOCK_GAMES, duelTiers, rialsToTomanString, shuffleTrivia, triviaGroupLevel, triviaTargetDifficulty } from '@dozari/shared';
+import { mulberry32, selectPriceOnlyRounds } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, trackRules, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { AgeTrack, HintRules, MissionKey } from '@dozari/shared';
 import { createDb, imageStoreFromEnv } from '@dozari/db';
@@ -24,7 +25,11 @@ import { Presence } from './realtime/presence.js';
 import { createLiveNotices } from './realtime/notices.js';
 import type { LiveNotices } from './realtime/notices.js';
 import type { Gateway } from './realtime/gateway.js';
-import type { MatchDeps } from './realtime/match-service.js';
+import type { MatchDeps, MatchPlay } from './realtime/match-service.js';
+import { createDbPlayLog } from './plays/log.js';
+import { createDbUsageStats } from './admin/usage-stats.js';
+import { createDbGroupStats } from './admin/group-stats.js';
+import { createBazaarMonitor } from './admin/bazaar-monitor.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
 import { LevelTable, createDbLevelTableStore } from './progress/table.js';
 import { defaultLevelTable, todayInTehran } from '@dozari/shared';
@@ -44,7 +49,7 @@ import { createDbChatStore } from './chat/store.js';
 import type { MatchService } from './realtime/match-service.js';
 import type { DuelQueue } from './realtime/queue.js';
 import { registerDailyRoutes } from './daily/routes.js';
-import { DailyService } from './daily/service.js';
+import { DAILY_TAG_PREFIX, DailyService } from './daily/service.js';
 import { createDbDailyStore } from './daily/store.js';
 import { registerTournamentRoutes } from './tournament/routes.js';
 import { TournamentService } from './tournament/service.js';
@@ -76,8 +81,8 @@ import { registerCandidateRoutes } from './realtime/candidates.js';
 import { createDbProfileLookup } from './realtime/profile.js';
 import { AccountDeletion, createDbDeleteCodeStore } from './account/deletion.js';
 import { registerAuthRoutes } from './auth/routes.js';
-import type { MiniAppTokens } from './auth/routes.js';
 import { miniAppDeviceId } from './auth/miniapp.js';
+import type { MiniAppTokens } from './auth/miniapp.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
 import { registerAdminRoutes } from './admin/routes.js';
@@ -94,10 +99,16 @@ import { createDbBotRepository } from './bot/repository.js';
 import { BotService } from './bot/service.js';
 import { startBotScheduler } from './bot/scheduler.js';
 import { TextFilterService, createDbWordStore } from './textfilter/service.js';
-import { createBaleClient } from './notify/client.js';
+import { createBaleClient, createMultiClient, createTelegramClient, isTelegramId, TELEGRAM_ID_PREFIX } from './notify/client.js';
 import { NotifyService } from './notify/service.js';
 import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
+import { GroupGameService } from './groupgame/service.js';
+import { GroupScoreRecorder } from './groupgame/record.js';
+import { createDbGroupRewardStore } from './groupgame/rewards.js';
+import { createDbGroupMine } from './groupgame/mine.js';
+import type { GroupMine } from './groupgame/mine.js';
+import { createDbGroupGameStore } from './groupgame/store.js';
 import { registerBaleRoutes } from './notify/routes.js';
 import { FcmService, createDbFcmTokenStore, createFcmSender, loadServiceAccount, registerFcmRoutes } from './notify/fcm.js';
 import { irnotiPushFromEnv, registerIrnotiPushRoutes } from './notify/irnoti-push.js';
@@ -231,7 +242,9 @@ export interface ServerDeps {
   /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
-  bale?: { service: NotifyService; botUsername: string | null };
+  bale?: { service: NotifyService; botUsername: string | null; telegramBotUsername?: string | null }
+  /** `GET /me/group-stats` (D249). */
+  groupMine?: GroupMine
   webPush?: WebPushService;
   fcm?: FcmService;
   irnotiPush?: IrnotiPushService;
@@ -340,7 +353,7 @@ export interface ServerDeps {
   corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
   localImagesDir?: string;
-  /** Bot tokens per messenger; turns on `POST /auth/miniapp` (the mini-app login, docs/logic/miniapp.md). */
+  /** Bot tokens per messenger: the mini-app's null-origin CORS and the id → account map for payments (the mini-app has no messenger login, D243). */
   miniApp?: MiniAppTokens;
 }
 
@@ -420,13 +433,13 @@ export function buildServer(deps: ServerDeps = {}) {
   }));
 
   // A messenger's web client may open the mini-app in a sandboxed iframe, whose requests carry `Origin: null`. The API takes bearer tokens
-  // only (no cookies), so allowing that origin adds no cross-site risk; it is on only when a mini-app login is.
+  // only (no cookies), so allowing that origin adds no cross-site risk; it is on only when a messenger token is set.
   const corsOrigin = deps.corsOrigin && (deps.miniApp?.bale || deps.miniApp?.telegram) && deps.corsOrigin !== '*' && !deps.corsOrigin.split(',').some((o) => o.trim() === 'null') ? `${deps.corsOrigin},null` : deps.corsOrigin;
   if (corsOrigin) {
     // @fastify/cors ≥10 allows only GET/HEAD/POST by default; the web app also sends PUT, PATCH and DELETE.
     void app.register(fastifyCors, { origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()), methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
   }
-  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion, deps.miniApp);
+  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
   if (deps.auth && deps.ads) registerAdsRoutes(app, deps.auth, deps.ads);
@@ -438,10 +451,9 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.fcm) registerFcmRoutes(app, deps.auth, deps.fcm);
   if (deps.auth && deps.irnotiPush) registerIrnotiPushRoutes(app, deps.auth);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
-  if (deps.auth && deps.messages && deps.social) {
-    const center = deps.messages;
+  if (deps.auth && deps.social) {
     const social = deps.social;
-    registerPendingRoutes(app, deps.auth, { inbox: (id) => center.inbox(id), incomingRequests: async (id) => (await social.friends(id)).incoming.map((p) => ({ id: p.id, nickname: p.nickname })) });
+    registerPendingRoutes(app, deps.auth, { incomingRequests: async (id) => (await social.friends(id)).incoming.map((p) => ({ id: p.id, nickname: p.nickname })) });
   }
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.phoneLogin) registerPhoneLoginRoutes(app, deps.phoneLogin);
@@ -455,7 +467,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.bale) {
     const phoneSvc = deps.phone;
     const settings = deps.settings;
-    registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername, phoneSvc ? { service: phoneSvc, required: async () => (settings ? (await settings.num('phone.required_for_bale')) === 1 : true) } : undefined);
+    registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername, deps.bale.telegramBotUsername ?? null, phoneSvc ? { service: phoneSvc, required: async () => (settings ? (await settings.num('phone.required_for_bale')) === 1 : true) } : undefined, deps.groupMine);
   }
   if (deps.settings) {
     const settings = deps.settings;
@@ -582,7 +594,12 @@ if (isMainModule(import.meta.url)) {
   const baleUsername = process.env.BALE_BOT_USERNAME?.replace(/^@/, '') ?? null;
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
-  const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
+  // The Telegram bot sits next to Bale's: same service and tables, its chat ids carry the `tg:` prefix (docs/logic/bale-bot.md §Telegram).
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramUsername = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, '') ?? null;
+  if (!telegramToken) console.warn('TELEGRAM_BOT_TOKEN is not set: the Telegram bot is off');
+  const telegramClient = telegramToken ? createTelegramClient(telegramToken, { base: process.env.TELEGRAM_API_BASE || undefined }) : null;
+  const notify = baleStore ? new NotifyService(baleStore, createMultiClient(baleClient, telegramClient)) : undefined;
   // Browser push (Web Push, VAPID): iPhone home-screen apps through Apple's service, Chrome through Google's. Off without the three VAPID_* variables.
   const vapid = process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@dozari.ir' } : null;
   const webPush = db && vapid ? new WebPushService(createDbPushSubStore(db), createVapidSender(vapid), vapid.publicKey) : undefined;
@@ -590,7 +607,9 @@ if (isMainModule(import.meta.url)) {
   const fcmAccount = loadServiceAccount(process.env.FCM_SERVICE_ACCOUNT_JSON);
   // irnoti push service wins when configured: the SDK in the app registers the device with irnoti and delivery goes through irnoti, so the direct FCM sender stays off.
   const irnotiPush = irnotiPushFromEnv(process.env) ?? undefined;
+  console.info(`[irnoti-push] ${irnotiPush ? 'on' : 'off (set IRNOTI_PUSH_APP_ID and IRNOTI_API_KEY)'}`);
   const fcm = irnotiPush || !(db && fcmAccount) ? undefined : new FcmService(createDbFcmTokenStore(db), createFcmSender(fcmAccount));
+  if (notify && irnotiPush) notify.appPush = (id, kind, text) => irnotiPush.notify(id, { title: 'دوزاری', body: text, tag: kind });
   if (webPush || fcm || irnotiPush) {
     notices.also = (id, n) => {
       void webPush?.notice(id, n).catch(() => undefined);
@@ -655,9 +674,8 @@ if (isMainModule(import.meta.url)) {
     // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
     messages.onDelivered = (ids) => {
       const online = new Set(presence.onlineIds());
-      // Online players get the live nudge; the others a browser push (capped, so a broadcast to everybody does not become thousands of lookups).
+      // Only the live nudge: inbox news is never pushed outside the app (too noisy), the badge shows it on the next open.
       for (const id of ids) if (online.has(id)) notices.push(id, { kind: 'inbox' });
-      for (const id of ids.filter((i) => !online.has(i)).slice(0, 500)) notices.also?.(id, { kind: 'inbox' });
     };
   }
   const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
@@ -690,8 +708,8 @@ if (isMainModule(import.meta.url)) {
     const baleSeen = new Map<string, number>();
     chat.onDirect = (friendId, message) => {
       const nickname = message.nickname;
-      if (presence.isOnline(friendId)) return void notices.push(friendId, { kind: 'dm', from: nickname });
-      notices.also?.(friendId, { kind: 'dm', from: nickname });
+      if (presence.isOnline(friendId)) return void notices.push(friendId, { kind: 'dm', from: nickname, fromId: message.userId });
+      notices.also?.(friendId, { kind: 'dm', from: nickname, fromId: message.userId });
       const key = `${message.userId}>${friendId}`;
       const last = baleSeen.get(key) ?? 0;
       if (Date.now() - last < 10 * 60_000) return;
@@ -932,12 +950,22 @@ if (isMainModule(import.meta.url)) {
     };
     notify.providerToken = process.env.BALE_PROVIDER_TOKEN ?? null;
     // Mini-app players pay without linking the bot: the paying Bale user maps to their mini-app account (same device id as the login).
-    if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(miniAppDeviceId(baleToken, baleUserId)))?.id ?? null;
+    if (baleToken || telegramToken) {
+      notify.miniAppUserOf = async (messengerUserId) => {
+        const telegram = isTelegramId(messengerUserId);
+        const token = telegram ? telegramToken : baleToken;
+        if (!token) return null;
+        const id = telegram ? messengerUserId.slice(TELEGRAM_ID_PREFIX.length) : messengerUserId;
+        return (await auth?.userByDevice(miniAppDeviceId(token, id, telegram ? 'telegram' : 'bale')))?.id ?? null;
+      };
+    }
   }
   const gemPayer = db ? createGemCardPayer(db, (msg, err) => console.error(msg, err)) : () => undefined;
   let dailyRef: DailyService | undefined;
   /** Puzzles each player has had in duels, tables and 2v2: nobody gets the same one again while others remain (solo keeps its own recent list). */
   const puzzleHistory = new PuzzleHistory();
+  const playLog = db ? createDbPlayLog(db) : undefined;
+  const logMatchPlays = (mode: 'duel' | 'team', plays: readonly MatchPlay[]) => void playLog?.record(plays.map((p) => ({ ...p, mode, hintsUsed: 0 }))).catch((err) => console.error('play log failed', err));
   const solo =
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
@@ -946,8 +974,9 @@ if (isMainModule(import.meta.url)) {
           onGem: gemPayer,
           levelOf,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
-          onFinished: (id, outcome, tag) => {
+          onFinished: (id, outcome, tag, detail) => {
             void player?.recordGame(id, { mode: 'solo', outcome });
+            if (detail) void playLog?.record([{ userId: id, mode: tag?.startsWith(DAILY_TAG_PREFIX) ? 'daily' : 'solo', outcome, ...detail }]).catch((err) => console.error('play log failed', err));
             void dailyRef?.onFinished(id, outcome, tag).catch((err) => console.error('daily finish failed', err));
           },
         })
@@ -1037,7 +1066,7 @@ if (isMainModule(import.meta.url)) {
           notify: messages ? async (userId, title, body) => void (await messages.send({ title, body, audience: 'user', targetUserId: userId }, ['in_app'])) : undefined,
         })
       : undefined;
-  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
+  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa, unitFa: p.unitFa, years: p.prices.map((x) => x.year) })) }) : undefined;
   const aiScheduler = db && aiStudio ? new AiScheduler(createDbAiScheduleStore(db), aiStudio, { audit: (action, target, detail) => void playerAudit?.record(action, target, detail), log: (msg, err) => app.log.error({ err }, msg) }) : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
   const profileTaskService = db && settings ? new ProfileTaskService({
@@ -1066,8 +1095,9 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, workshop, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), usage: createDbUsageStats(db), groupStats: createDbGroupStats(db), bazaar: createBazaarMonitor({ token: process.env.BAZAAR_PISHKHAN_TOKEN }), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, workshop, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
+    groupMine: db ? createDbGroupMine(db) : undefined,
     realtime: Boolean(auth),
     triviaDuel:
       duelProfile && triviaStore && settings
@@ -1141,11 +1171,13 @@ if (isMainModule(import.meta.url)) {
           tableStakes,
           profile: duelProfile!,
           // A 2v2 earns the duel XP too (progression.md: team reuses the duel base) — people and bots alike.
-          onTeamEnded: ({ players, result }) => {
+          onTeamEnded: ({ players, result, plays }) => {
+            logMatchPlays('team', plays);
             if (result.reason === 'abandon') return;
             for (const p of players) void player?.recordGame(p.userId, { mode: 'duel', outcome: result.winner === null ? 'draw' : result.winner === p.side ? 'win' : 'loss' });
           },
-          onEnded: ({ players, result }) => {
+          onEnded: ({ players, result, plays }) => {
+            logMatchPlays('duel', plays);
             if (tournamentService) void tournamentService.onMatchEnded(players, result.winner);
             if (result.reason !== 'abandon') {
               players.forEach((id, side) => void player?.recordGame(id, { mode: 'duel', outcome: result.winner === null ? 'draw' : result.winner === side ? 'win' : 'loss' }));
@@ -1162,7 +1194,7 @@ if (isMainModule(import.meta.url)) {
           },
         }
       : undefined,
-    bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
+    bale: notify ? { service: notify, botUsername: baleUsername, telegramBotUsername: telegramUsername } : undefined,
     phone,
     phoneLogin,
     find,
@@ -1261,7 +1293,7 @@ if (isMainModule(import.meta.url)) {
     clientInfo: db ? createDbClientInfoStore(db) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
-    miniApp: { bale: baleToken, telegram: process.env.TELEGRAM_BOT_TOKEN },
+    miniApp: { bale: baleToken, telegram: telegramToken },
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
@@ -1314,8 +1346,58 @@ if (isMainModule(import.meta.url)) {
     const aiRuns = startAiScheduler({ scheduler: aiScheduler, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => aiRuns.stop());
   }
-  if (notify && baleClient) {
-    const runner = startNotifyRunner({ service: notify, client: baleClient, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
+  if (notify && (baleClient || telegramClient)) {
+    const clients = [baleClient && { name: 'bale', client: baleClient }, telegramClient && { name: 'telegram', client: telegramClient, pollSec: Math.max(0, Number(process.env.TELEGRAM_POLL_SECONDS ?? 5)) }].filter((c): c is NonNullable<typeof c> => !!c);
+    // The bot also plays the daily puzzle inside groups (docs/logic/group-game.md).
+    const groupClient = createMultiClient(baleClient, telegramClient);
+    if (db && daily && groupClient) {
+      const groupPuzzles = createDbPuzzleSource(db);
+      const groupStore = createDbGroupGameStore(db);
+      notify.groups = new GroupGameService({
+        store: groupStore,
+        client: groupClient,
+        todayPuzzle: async (dateKey) => {
+          const row = await daily.ensure(dateKey);
+          return row ? ((await groupPuzzles.byId?.(row.puzzleId)) ?? null) : null;
+        },
+        tableCard: tableService ? (code) => tableService.card(code) : undefined,
+        drawPrices: async (n) => {
+          const { catalog, items } = await createDbPriceOnlySource(db).products(n * 3);
+          return selectPriceOnlyRounds(catalog, n, mulberry32(randomInt(0, 2 ** 31)))
+            .map((r) => ({ nameFa: items[r.productId]?.nameFa ?? '', unitFa: items[r.productId]?.unitFa ?? null, year: r.year, actualRials: r.actualRials, options: r.options ?? [] }))
+            .filter((q) => q.nameFa !== '' && q.options.length > 0);
+        },
+        drawQuestions: triviaStore
+          ? async (n) => {
+              const rng = mulberry32(randomInt(0, 2 ** 31));
+              // groups are mixed ages and never link an account: the adult pool, no per-player memory
+              const picked = await drawTrivia(triviaStore, undefined, { tracks: ['adult'], count: n, rng, userIds: [] });
+              const metas = new Map(await Promise.all([...new Set(picked.map((q) => q.topicId))].map(async (id) => [id, await triviaStore.topicMeta(id).catch(() => null)] as const)));
+              return picked.map((q) => ({ textFa: q.textFa, explanationFa: q.explanationFa, topicFa: metas.get(q.topicId)?.nameFa ?? null, topicEmoji: metas.get(q.topicId)?.emoji ?? null, ...(({ options, correctIndex }) => ({ options, correctIndex }))(shuffleTrivia(q, rng)) }));
+            }
+          : undefined,
+        // Points earned in a group also pay the player's own account when the messenger id maps to one (D249).
+        recorder: new GroupScoreRecorder({
+          store: groupStore,
+          userOf: async (ref) => ((await baleStore?.userOfChat(ref)) ?? (await notify.miniAppUserOf?.(ref)) ?? null),
+          eligible: ageTracks ? async (id) => (await ageTracks.effective(id)) === 'adult' : undefined,
+          rewards: createDbGroupRewardStore(db),
+          onPaid: async (id) => {
+            await player?.afterGame?.(id);
+          },
+          log: (msg, err) => app.log.warn({ err }, msg),
+        }),
+        usernames: { bale: baleUsername, telegram: telegramUsername },
+        log: (msg, err) => (err ? app.log.warn({ err }, msg) : app.log.info(msg)),
+      });
+    }
+    if (find) {
+      notify.inviteLink = async (userId, telegram) => {
+        const user = telegram ? telegramUsername : baleUsername;
+        return user ? `${telegram ? 'https://t.me' : 'https://ble.ir'}/${user}?startapp=i_${await find.handle(userId)}` : null;
+      };
+    }
+    const runner = startNotifyRunner({ service: notify, clients, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => runner.stop());
   }
   // The default shop items, badges, taunts and cities are created on first read; read them once now so a fresh database is complete at boot.

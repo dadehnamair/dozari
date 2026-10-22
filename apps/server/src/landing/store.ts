@@ -1,4 +1,4 @@
-import { and, asc, cities, dailyPuzzles, desc, eq, landingCast, landingComments, landingFaq, landingPosts, landingSlugRedirects, pricePoints, productImages, products, puzzleGroupItems, puzzleGroups, puzzles, sql, users } from '@dozari/db';
+import { and, asc, cities, dailyPuzzles, desc, eq, landingCast, landingComments, landingFaq, landingPosts, landingReviews, landingSlugRedirects, pricePoints, productImages, products, puzzleGroupItems, puzzleGroups, puzzles, sql, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 
@@ -38,6 +38,18 @@ export interface FaqRow {
   isActive: boolean;
 }
 export type NewFaq = Omit<FaqRow, 'id' | 'sortOrder'>;
+
+export interface ReviewRow {
+  id: string;
+  authorName: string;
+  bodyFa: string;
+  rating: number | null;
+  marketFa: string;
+  sourceUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+export type NewReview = Omit<ReviewRow, 'id' | 'sortOrder'>;
 
 
 export type CommentTarget = 'post' | 'cast';
@@ -88,6 +100,9 @@ export interface LandingStore {
   faq(opts: { includeHidden: boolean }): Promise<FaqRow[]>;
   addFaq(f: NewFaq): Promise<FaqRow>;
   updateFaq(id: string, patch: Partial<NewFaq & { sortOrder: number }>): Promise<'ok' | 'not_found'>;
+  reviews(opts: { includeHidden: boolean }): Promise<ReviewRow[]>;
+  addReview(r: NewReview): Promise<ReviewRow>;
+  updateReview(id: string, patch: Partial<NewReview & { sortOrder: number }>): Promise<'ok' | 'not_found'>;
   addComment(c: NewComment, now: number): Promise<CommentRow>;
   comments(opts: { targetType?: CommentTarget; targetKey?: string; status?: CommentStatus; limit: number }): Promise<CommentRow[]>;
   commentCounts(targetType: CommentTarget, status: CommentStatus): Promise<Record<string, number>>;
@@ -176,6 +191,22 @@ export function createDbLandingStore(db: Db): LandingStore {
       if (Object.keys(patch).length > 0) await db.update(landingFaq).set(patch).where(eq(landingFaq.id, id));
       return 'ok';
     },
+    async reviews({ includeHidden }) {
+      const rows = await db.select().from(landingReviews).where(includeHidden ? undefined : eq(landingReviews.isActive, true)).orderBy(asc(landingReviews.sortOrder), asc(landingReviews.id));
+      return rows.map((r) => ({ ...r }));
+    },
+    async addReview(r) {
+      const [agg] = await db.select({ top: sql<number>`COALESCE(MAX(${landingReviews.sortOrder}), 0)` }).from(landingReviews);
+      const row = { ...r, id: uuidv7(), sortOrder: Number(agg?.top ?? 0) + 1 };
+      await db.insert(landingReviews).values(row);
+      return row;
+    },
+    async updateReview(id, patch) {
+      const [r] = await db.select({ id: landingReviews.id }).from(landingReviews).where(eq(landingReviews.id, id));
+      if (!r) return 'not_found';
+      if (Object.keys(patch).length > 0) await db.update(landingReviews).set(patch).where(eq(landingReviews.id, id));
+      return 'ok';
+    },
     async addComment(c, now) {
       const row = { ...c, id: uuidv7(), createdAt: now };
       await db.insert(landingComments).values({ ...row, createdAt: new Date(now) });
@@ -253,6 +284,7 @@ export function createMemoryLandingStore(): LandingStore {
   const redirects = new Map<string, string>();
   const cast: CastRow[] = [];
   const faq: FaqRow[] = [];
+  const reviews: ReviewRow[] = [];
   const comments: CommentRow[] = [];
   const nid = (n: number, p: string) => `00000000-0000-7000-${p}-${String(n).padStart(12, '0')}`;
   return {
@@ -317,6 +349,20 @@ export function createMemoryLandingStore(): LandingStore {
       const f = faq.find((x) => x.id === id);
       if (!f) return 'not_found';
       Object.assign(f, patch);
+      return 'ok';
+    },
+    async reviews({ includeHidden }) {
+      return reviews.filter((r) => includeHidden || r.isActive).sort((a, b) => a.sortOrder - b.sortOrder).map((r) => ({ ...r }));
+    },
+    async addReview(r) {
+      const row = { ...r, id: nid(reviews.length + 1, 'e000'), sortOrder: reviews.length + 1 };
+      reviews.push(row);
+      return { ...row };
+    },
+    async updateReview(id, patch) {
+      const r = reviews.find((x) => x.id === id);
+      if (!r) return 'not_found';
+      Object.assign(r, patch);
       return 'ok';
     },
     async addComment(c, now) {

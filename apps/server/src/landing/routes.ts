@@ -15,14 +15,15 @@ export function registerLandingPublicRoutes(app: FastifyInstance, landing: Landi
     const t = (k: string) => settings.text(k);
     const badgeIds = ['enamad', 'samandehi', 'ersa', 'etehadieh', 'ircg', 'bazaar', 'myket'] as const;
     const badgeUrls = await Promise.all(badgeIds.map((b) => t(`link.badge_${b}`)));
-    const [name, tagline, heroTitle, heroText, email, instagram, channel, android, ios, baleBot, telegramApp, telegramOn, appUrl, dApp, dLanding, dShort, seoTitle, seoDescription, keywords, ogImage, ogAlt, sameAs, fontUrl, vGoogle, vBing, vYandex, vEnamad, indexable, statsUrl, statsId, cast, faq] = await Promise.all([
+    const [storeMyket, storeBazaar, storeGoogle] = await Promise.all([t('link.store_myket'), t('link.store_bazaar'), t('link.store_google_play')]);
+    const [name, tagline, heroTitle, heroText, email, instagram, channel, android, ios, baleBot, telegramApp, telegramOn, appUrl, dApp, dLanding, dShort, seoTitle, seoDescription, keywords, ogImage, ogAlt, sameAs, fontUrl, vGoogle, vBing, vYandex, vEnamad, indexable, statsUrl, statsId, cast, faq, reviews] = await Promise.all([
       t('landing.site_name'), t('landing.tagline'), t('landing.hero_title'), t('landing.hero_text'), t('landing.contact_email'), t('link.instagram'), t('link.channel'), t('link.android_app'), t('link.ios_app'), t('link.bale_bot'), t('link.telegram_app'), settings.num('feature.telegram_app'), t('link.app_url'),
       t('domain.app'), t('domain.landing'), t('domain.short'),
       t('landing.seo_title'), t('landing.seo_description'), t('landing.keywords'), t('landing.og_image'), t('landing.og_image_alt'), t('landing.same_as'), t('landing.font_url'),
-      t('seo.verify_google'), t('seo.verify_bing'), t('seo.verify_yandex'), t('seo.verify_enamad'), settings.num('landing.indexable'), t('analytics.script_url'), t('analytics.site_id'), landing.cast.publicList(), landing.faq.publicList(),
+      t('seo.verify_google'), t('seo.verify_bing'), t('seo.verify_yandex'), t('seo.verify_enamad'), settings.num('landing.indexable'), t('analytics.script_url'), t('analytics.site_id'), landing.cast.publicList(), landing.faq.publicList(), landing.reviews.publicList(),
     ]);
     return {
-      site: { name, tagline, heroTitle, heroText, contactEmail: email.trim() || null, instagram: link(instagram), channel: link(channel), androidApp: link(android), iosApp: link(ios), baleBot: link(baleBot), telegramApp: telegramOn === 1 ? link(telegramApp) : null, appUrl: link(appUrl), domains: { app: dApp.trim(), landing: dLanding.trim(), short: dShort.trim() },
+      site: { name, tagline, heroTitle, heroText, contactEmail: email.trim() || null, instagram: link(instagram), channel: link(channel), androidApp: link(android), iosApp: link(ios), stores: { myket: link(storeMyket), bazaar: link(storeBazaar), googlePlay: link(storeGoogle) }, baleBot: link(baleBot), telegramApp: telegramOn === 1 ? link(telegramApp) : null, appUrl: link(appUrl), domains: { app: dApp.trim(), landing: dLanding.trim(), short: dShort.trim() },
         badges: badgeIds.map((id, n) => ({ id, url: link(badgeUrls[n] as string) })),
         seo: {
           title: seoTitle.trim() || null, description: seoDescription.trim() || null, keywords: list(keywords), ogImage: link(ogImage), ogImageAlt: ogAlt.trim() || null,
@@ -33,6 +34,7 @@ export function registerLandingPublicRoutes(app: FastifyInstance, landing: Landi
       },
       cast: cast.map((c) => ({ id: c.id, name: c.nameFa, role: c.roleFa, bio: c.bioFa, image: c.imageKey })),
       faq: faq.map((f) => ({ question: f.questionFa, answer: f.answerFa })),
+      reviews: reviews.map((r) => ({ id: r.id, author: r.authorName, body: r.bodyFa, rating: r.rating, market: r.marketFa, url: link(r.sourceUrl ?? '') })),
     };
   });
 
@@ -173,6 +175,34 @@ export function registerLandingAdminRoutes(g: FastifyInstance, landing: LandingS
     if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
     if ((await landing.faq.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'not_found' });
     audit('landing.faq.update', p.data.id, JSON.stringify(b.data));
+    return { ok: true };
+  });
+
+  // The admin form sends every field as text: a blank star count or link means «none»; a link must be http(s) so it can never be a script URL.
+  const blankToNull = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);
+  const reviewFields = z.object({
+    authorName: z.string().trim().min(1).max(60),
+    bodyFa: z.string().trim().min(3).max(1000),
+    rating: z.preprocess(blankToNull, z.coerce.number().int().min(1).max(5).nullable()),
+    marketFa: z.string().trim().min(1).max(60),
+    sourceUrl: z.preprocess(blankToNull, z.string().trim().max(300).regex(/^https?:\/\//i).nullable()),
+    isActive: z.boolean(),
+  });
+  const reviewBody = reviewFields.partial({ rating: true, sourceUrl: true, isActive: true });
+  g.get('/admin/landing/reviews', async () => ({ reviews: await landing.reviews.list() }));
+  g.post('/admin/landing/reviews', async (req, reply) => {
+    const b = reviewBody.safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+    const row = await landing.reviews.add({ ...b.data, rating: b.data.rating ?? null, sourceUrl: b.data.sourceUrl ?? null, isActive: b.data.isActive ?? true });
+    audit('landing.review.add', row.id, `${b.data.marketFa} ${b.data.authorName}`);
+    return reply.code(201).send({ id: row.id });
+  });
+  g.patch('/admin/landing/reviews/:id', async (req, reply) => {
+    const p = idParam.safeParse(req.params);
+    const b = reviewFields.partial().extend({ sortOrder: z.number().int().min(0).max(10_000).optional() }).safeParse(req.body);
+    if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+    if ((await landing.reviews.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'not_found' });
+    audit('landing.review.update', p.data.id, JSON.stringify(b.data));
     return { ok: true };
   });
 

@@ -183,7 +183,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const styles = StyleSheet.create({
   reportLink: { fontFamily: fonts.bold, fontSize: 12, color: '#8E7B6B', textDecorationLine: 'underline', textAlign: 'center' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, backgroundColor: 'rgba(20,8,32,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  card: { width: '100%', maxWidth: 340, borderRadius: 30, borderWidth: 4, borderColor: INK, backgroundColor: colors.paper, overflow: 'hidden', ...lift(8) },
+  card: { width: '100%', maxWidth: 340, maxHeight: '90%', borderRadius: 30, borderWidth: 4, borderColor: INK, backgroundColor: colors.paper, overflow: 'hidden', ...lift(8) },
   header: { height: 104, overflow: 'hidden' },
   headerLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: INK },
   closeBtn: { position: 'absolute', top: 10, left: 10, width: 34, height: 34, borderRadius: 12, borderWidth: 3, borderColor: INK, backgroundColor: '#A66BF0', alignItems: 'center', justifyContent: 'center', ...lift(3) },

@@ -33,7 +33,7 @@ const suffixFor = (name: string, i: number): string => {
 };
 
 /** Deterministic variants: «name_birthyear» handles (1360–1399) and «name+suffix» forms, never random so tests and admin previews are stable. */
-const VARIANTS: string[] = GIVEN_NAMES.flatMap((n, i) => [`${n}_${faDigits(1360 + ((i * 7) % 40))}`, `${n}${suffixFor(n, i)}`]);
+const VARIANTS: string[] = GIVEN_NAMES.flatMap((n, i) => [`${n}_${faDigits(1360 + ((i * 7) % 40))}`, `${n}${suffixFor(n, i)}`, `${n}_${faDigits(1360 + ((i * 11 + 19) % 40))}`]);
 
 export const BOT_NAME_POOL: readonly string[] = [...new Set([...GIVEN_NAMES, ...VARIANTS])];
 

@@ -1,0 +1,1 @@
+ALTER TABLE `puzzles` ADD `reviewed_at` datetime(3);

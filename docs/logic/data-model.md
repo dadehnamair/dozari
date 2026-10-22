@@ -58,7 +58,7 @@ median. No interpolation for gameplay rules (interpolation allowed only for char
 
 ### `puzzles`
 `id, status (draft|approved|retired), source (generated|curated|ugc), author_id null, seed bigint null,
-topic_id null (themed-rounds.md), difficulty_score double null, times_played int, avg_solve_rate double null, created_at`
+topic_id null (themed-rounds.md), difficulty_score double null, times_played int, avg_solve_rate double null, reviewed_at datetime(3) null (admin re-check, D242; never affects serving), created_at`
 
 ### `puzzle_topics` / `puzzle_tags`
 `puzzle_topics(id, slug unique, name_fa, sort_order, is_active)`; `puzzle_tags(puzzle_id FK, tag)` PK both — see `logic/themed-rounds.md`.
@@ -106,7 +106,10 @@ chat_unlocked_at timestamptz null, invited_by uuid null, is_banned bool, created
 age_track enum(kid,teen,adult) default adult, age_track_set_at datetime(3) null` (D198, `logic/age-tracks.md`; `puzzles` and `products` also carry `age_track`)
 
 ### `user_clients`
-One row per account: the app it used last (`platform` android|ios|web, `os_version`, `app_build`, `store` = market of the build now) and where it was first seen (`first_store`, `first_build`, `first_seen_at`). Client-reported via `x-client-*` headers; admin display only.
+One row per account: the app it used last (`platform` android|ios|web, `os_version`, `app_build`, `store` = market of the build now) and where it was first seen (`first_store`, `first_build`, `first_seen_at`). `pwa` / `first_pwa` say the web build ran as an installed PWA (`x-client-pwa`). Client-reported via `x-client-*` headers; admin display only.
+
+### `puzzle_plays`
+`id, user_id FK (cascade), puzzle_id char(36) (no FK), mode enum(solo,daily,duel,team), outcome enum(win,loss,draw), groups_solved tinyint, mistakes smallint, hints_used smallint, created_at` — one row per player per finished board, for the admin stats (`logic/admin-stats.md`, D241).
 
 ### `guardian_links`, `guardian_link_codes`
 `guardian_links(child_id PK/FK, guardian_id FK, created_at)`; `guardian_link_codes(code char(6) PK, child_id FK, guardian_id FK, expires_at)` (D198).

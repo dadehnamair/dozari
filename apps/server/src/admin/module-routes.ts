@@ -18,6 +18,10 @@ import type { EconomyAdmin } from './economy.js';
 import type { AgeTrackAdmin } from '../agetrack/overview.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
+import { PLAYER_SORTS } from './usage-stats.js';
+import type { UsageStatsAdmin } from './usage-stats.js';
+import type { GroupStatsAdmin } from './group-stats.js';
+import type { BazaarMonitor } from './bazaar-monitor.js';
 import { isHttpUrl } from '../security/url-guard.js';
 import type { MessageCenter } from '../messages/service.js';
 import { SMS_PROVIDERS, renderSmsText } from '../phone/smsConfig.js';
@@ -65,6 +69,12 @@ import { registerBackupAdminRoutes } from '../backup/routes.js';
 import type { BackupService } from '../backup/service.js';
 
 export interface AdminModules {
+  /** Installs per market / PWA and what players did with the puzzles (docs/logic/admin-stats.md). */
+  usage?: UsageStatsAdmin;
+  /** Bot-group activity and the funnel from group links to new players (docs/logic/group-game.md §Funnel). */
+  groupStats?: GroupStatsAdmin;
+  /** Read-only CafeBazaar release status (Pishkhan API). */
+  bazaar?: BazaarMonitor;
   /** Database backups to S3-compatible storage (owner only). */
   backups?: BackupService;
   /** Where the panel's image uploads go (S3 or the local images dir); without it the upload button answers 404. */
@@ -207,7 +217,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, workshop: !!m.workshop, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
+    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, usage: !!m.usage, groupStats: !!m.groupStats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, workshop: !!m.workshop, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
@@ -215,6 +225,34 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
   if (m.stats) {
     const stats = m.stats;
     g.get('/admin/dashboard', async () => stats.dashboard(Date.now()));
+  }
+
+  if (m.usage) {
+    const usage = m.usage;
+    const q = z.object({ days: z.coerce.number().int().min(1).max(365).default(30), limit: z.coerce.number().int().min(1).max(200).default(50), sort: z.enum(PLAYER_SORTS).default('plays') });
+    g.get('/admin/stats/installs', async () => usage.installs(Date.now()));
+    g.get('/admin/stats/gameplay', async (req, reply) => {
+      const p = q.safeParse(req.query);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return usage.gameplay(Date.now(), p.data.days);
+    });
+    g.get('/admin/stats/players', async (req, reply) => {
+      const p = q.safeParse(req.query);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return { players: await usage.players(Date.now(), p.data.days, p.data.limit, p.data.sort) };
+    });
+  }
+  if (m.groupStats) {
+    const groupStats = m.groupStats;
+    g.get('/admin/stats/groups', async (req, reply) => {
+      const p = z.object({ days: z.coerce.number().int().min(1).max(365).default(30) }).safeParse(req.query);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return groupStats.groups(Date.now(), p.data.days);
+    });
+  }
+  if (m.bazaar) {
+    const bazaar = m.bazaar;
+    g.get('/admin/stats/bazaar', async () => bazaar.status());
   }
 
   if (m.audit) {
@@ -896,7 +934,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
   if (m.puzzles) {
     const puzzles = m.puzzles;
     const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().max(300).optional(), productIds: z.array(z.string().uuid()).length(4) });
-    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200), tiers: await puzzles.tiers() }));
+    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(1000), tiers: await puzzles.tiers() }));
     g.post('/admin/puzzles', async (req, reply) => {
       const b = z.object({ groups: z.array(groupBody).length(4), tierId: z.string().uuid().nullable().optional(), ageTrack: z.enum(['kid', 'teen', 'adult']).optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
@@ -950,7 +988,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.get('/admin/puzzle-topics', async () => ({ topics: await puzzles.topics() }));
     g.post('/admin/puzzle-topics', async (req, reply) => {
-      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(50), nameFa: z.string().trim().min(2).max(60), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
+      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(50), nameFa: z.string().trim().min(2).max(60), iconKey: z.string().trim().max(40).nullable().optional(), emoji: z.string().trim().max(16).nullable().optional(), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
       const out = await puzzles.saveTopic(b.data);
       if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
@@ -993,6 +1031,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!out.ok) return reply.code(out.error === 'not_found' || out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
       void audit('puzzle.swap', p.data.id, `${b.data.fromProductId}>${b.data.toProductId}`);
       return { ok: true, status: out.status };
+    });
+    // Review mark (بازبینی): stamps "reviewed now" (re-review overwrites) or clears it; serving is unaffected.
+    g.put('/admin/puzzles/:id/review', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ reviewed: z.boolean().default(true) }).safeParse(req.body ?? {});
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.markReviewed(p.data.id, b.data.reviewed);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      void audit(b.data.reviewed ? 'puzzle.review' : 'puzzle.review.clear', p.data.id);
+      return { ok: true, reviewedAt: b.data.reviewed ? Date.now() : null };
     });
     g.patch('/admin/puzzles/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
@@ -1120,7 +1168,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.post('/admin/bots/generate', async (req, reply) => {
       const b = z
         .object({
-          count: z.number().int().min(1).max(50),
+          count: z.number().int().min(1).max(200),
           levelMin: z.number().int().min(1).max(100),
           levelMax: z.number().int().min(1).max(100),
           skillMin: z.number().int().min(0).max(100),

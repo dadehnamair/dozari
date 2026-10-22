@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { AI_LIMITS, AI_SCHEDULE_LIMITS } from '@dozari/shared';
 import { generateRequestSchema, saveSchema } from './content.js';
 import { AiError } from './providers.js';
+import { priceFillRequestSchema } from './price-fill.js';
 import { reviewRequestSchema } from './puzzle-review.js';
 import type { AiStudio } from './studio.js';
 import { scheduleInputSchema } from './schedules.js';
@@ -36,6 +37,17 @@ export function registerAiAdminRoutes(g: FastifyInstance, studio: AiStudio, audi
     return run(reply, async () => {
       const out = await studio.generate(body.data);
       void audit('ai.generate', body.data.kind, `${out.provider}/${out.model} ×${out.drafts.length}`);
+      return out;
+    });
+  });
+
+  // Suggests prices for the years one product has none for; the editor ticks what to keep and saves it as pending prices.
+  g.post('/admin/ai/product-prices', async (req, reply) => {
+    const body = priceFillRequestSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    return run(reply, async () => {
+      const out = await studio.suggestPrices(body.data);
+      void audit('ai.product-prices', body.data.productId ?? body.data.nameFa ?? '', `${out.provider}/${out.model} ×${out.prices.length}`);
       return out;
     });
   });

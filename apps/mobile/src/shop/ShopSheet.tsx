@@ -18,6 +18,8 @@ import { buyItem, fetchShop, payWithMoney } from './api';
 import { payNote } from './payNote';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { useTheme } from '../theme/themeStore';
+import { BrassSquare, Plate } from '../duel/adultKit';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -59,6 +61,7 @@ const stateText = (it: ShopItem, rotatesAt: number | null): string | null => {
  */
 export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: () => void; onBalance?: (coins: number) => void; /** `feature.coin_packages` is on: items with a money price get a pay button. */ realMoney?: boolean }) {
   useHardwareBack(onClose);
+  const adult = useTheme() === 'adult';
   const [shop, setShop] = useState<Shop | null>(null);
   const [tab, setTab] = useState<TabKey>('boost');
   const [note, setNote] = useState<string | null>(null);
@@ -103,37 +106,43 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
 
   return (
     <View style={styles.root}>
-      <View style={StyleSheet.absoluteFill} pointerEvents="none"><Scene scene="hojre" /></View>
-      <View style={styles.veil} pointerEvents="none"><GradientFill from="rgba(43,18,64,0.55)" to="rgba(43,18,64,0.82)" /></View>
+      {adult ? <GradientFill from="#2A1A0E" to="#0E0A08" mid={{ at: 0.7, color: '#0E0A08' }} /> : <View style={StyleSheet.absoluteFill} pointerEvents="none"><Scene scene="hojre" /></View>}
+      {adult ? null : <View style={styles.veil} pointerEvents="none"><GradientFill from="rgba(43,18,64,0.55)" to="rgba(43,18,64,0.82)" /></View>}
       <View style={styles.column}>
         <View style={styles.head}>
-          <Pressable accessibilityRole="button" accessibilityLabel={fa.shop.close} onPress={onClose}>
-            {({ pressed }) => (
-              <View style={[styles.back, pressed ? styles.pressed : null]}>
-                <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-                <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
-              </View>
-            )}
-          </Pressable>
-          <View style={styles.plate}>
-            <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-            <Text style={styles.plateText}>{fa.shop.room}</Text>
-          </View>
+          {adult ? <BrassSquare label={fa.shop.close} onPress={onClose} glyph="back" /> : (
+            <Pressable accessibilityRole="button" accessibilityLabel={fa.shop.close} onPress={onClose}>
+              {({ pressed }) => (
+                <View style={[styles.back, pressed ? styles.pressed : null]}>
+                  <GradientFill from="#FFE48A" to={colors.candy.yellow} />
+                  <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
+                </View>
+              )}
+            </Pressable>
+          )}
+          {adult ? (
+            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} ring={0} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{fa.shop.room}</Text></Plate></View>
+          ) : (
+            <View style={styles.plate}>
+              <GradientFill from="#FFE48A" to={colors.candy.yellow} />
+              <Text style={styles.plateText}>{fa.shop.room}</Text>
+            </View>
+          )}
           {shop ? (
-            <View style={styles.pill} accessibilityLabel={`${fa.shop.balance} ${shop.balance}`}>
-              <Text style={styles.pillText}>{n(shop.balance)}</Text>
+            <View style={[styles.pill, adult ? styles.pillAdult : null]} accessibilityLabel={`${fa.shop.balance} ${shop.balance}`}>
+              <Text style={[styles.pillText, adult ? styles.pillTextAdult : null]}>{n(shop.balance)}</Text>
               <View style={styles.pillIcon}><Item icon="coin" /></View>
             </View>
           ) : null}
           {shop ? (
-            <View style={styles.pill} accessibilityLabel={`${fa.hints.tokens} ${shop.tokens}`}>
-              <Text style={styles.pillText}>{n(shop.tokens)}</Text>
+            <View style={[styles.pill, adult ? styles.pillAdult : null]} accessibilityLabel={`${fa.hints.tokens} ${shop.tokens}`}>
+              <Text style={[styles.pillText, adult ? styles.pillTextAdult : null]}>{n(shop.tokens)}</Text>
               <Icon name="hint" size={18} color="#FFE48A" strokeWidth={2.6} />
             </View>
           ) : null}
           {shop && shop.gems > 0 ? (
-            <View style={styles.pill} accessibilityLabel={`${fa.home.hub.gems} ${shop.gems}`}>
-              <Text style={styles.pillText}>{n(shop.gems)}</Text>
+            <View style={[styles.pill, adult ? styles.pillAdult : null]} accessibilityLabel={`${fa.home.hub.gems} ${shop.gems}`}>
+              <Text style={[styles.pillText, adult ? styles.pillTextAdult : null]}>{n(shop.gems)}</Text>
               <View style={styles.pillIcon}><Item icon="gem" /></View>
             </View>
           ) : null}
@@ -144,9 +153,9 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
             const on = tab === t.key;
             return (
               <Pressable key={t.key} onPress={() => pick(t.key)} accessibilityRole="tab" accessibilityState={{ selected: on }} style={styles.tabCell}>
-                <View style={[styles.tab, on ? styles.tabOn : null, t.key !== 'boost' ? styles.tabSoon : null]}>
+                <View style={[styles.tab, on ? styles.tabOn : null, t.key !== 'boost' ? styles.tabSoon : null, adult ? (on ? styles.tabOnAdult : styles.tabAdult) : null]}>
                   <View style={styles.tabIcon}><Item icon={t.icon} /></View>
-                  <Text style={styles.tabText} numberOfLines={1}>{fa.shop.tabs[t.key]}</Text>
+                  <Text style={[styles.tabText, adult ? (on ? styles.tabTextOnAdult : styles.tabTextAdult) : null]} numberOfLines={1}>{fa.shop.tabs[t.key]}</Text>
                 </View>
               </Pressable>
             );
@@ -167,19 +176,19 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
                 const locked = it.blocked !== null;
                 return (
                   <View key={it.id} style={styles.cell}>
-                    <View style={[styles.card, tight ? styles.cardTight : null]}>
+                    <View style={[styles.card, tight ? styles.cardTight : null, adult ? styles.cardAdult : null]}>
                       {it.descriptionFa.trim() ? (
-                        <Pressable onPress={() => setWhyLocked(it.descriptionFa)} accessibilityRole="button" accessibilityLabel={`${fa.shop.about} ${it.titleFa}`} hitSlop={8} style={styles.info}>
-                          <Text style={styles.infoText}>؟</Text>
+                        <Pressable onPress={() => setWhyLocked(it.descriptionFa)} accessibilityRole="button" accessibilityLabel={`${fa.shop.about} ${it.titleFa}`} hitSlop={8} style={[styles.info, adult ? styles.infoAdult : null]}>
+                          <Text style={[styles.infoText, adult ? styles.infoTextAdult : null]}>؟</Text>
                         </Pressable>
                       ) : null}
                       <View style={[styles.art, tight ? styles.artTight : null]}>
-                        <View style={[styles.artIcon, tight ? styles.artIconTight : null]}><Item icon={it.iconKey ?? 'magnifier'} /></View>
-                        {locked ? <View style={styles.lock}><View style={styles.lockIcon}><Item icon="lock" /></View></View> : null}
+                        <View style={[styles.artIcon, tight ? styles.artIconTight : null, adult && locked ? styles.artLockedAdult : null]}><Item icon={it.iconKey ?? 'magnifier'} /></View>
+                        {locked ? <View style={[styles.lock, adult ? styles.lockAdult : null]}><View style={styles.lockIcon}><Item icon="lock" /></View></View> : null}
                       </View>
-                      <Text style={styles.name} numberOfLines={1}>{it.titleFa}</Text>
-                      <Text style={[styles.sub, tight ? styles.subTight : null]} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
-                      <Pressable onPress={() => (locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, tight ? styles.buyTight : null, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
+                      <Text style={[styles.name, adult ? styles.nameAdult : null]} numberOfLines={1}>{it.titleFa}</Text>
+                      <Text style={[styles.sub, tight ? styles.subTight : null, adult ? styles.subAdult : null]} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
+                      <Pressable onPress={() => (locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, adult ? styles.buyAdult : null, tight ? styles.buyTight : null, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
                         <View style={styles.buyIcon}><Item icon={it.currency === 'gems' ? 'gem' : 'coin'} /></View>
                         <Text style={styles.buyText}>{(it.currency === 'gems' ? it.priceGems : it.priceCoins) === 0 ? fa.shop.free : n(it.currency === 'gems' ? it.priceGems : it.priceCoins)}</Text>
                       </Pressable>
@@ -196,9 +205,9 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
         </View>
         {pages > 1 ? (
           <View style={styles.pager}>
-            <Pressable disabled={at === 0} onPress={() => setPage(at - 1)} accessibilityRole="button" accessibilityLabel={fa.shop.prev} style={[styles.pageBtn, at === 0 ? styles.buyOff : null]}><Icon name="back" size={18} color={colors.ink} strokeWidth={3} /></Pressable>
+            <Pressable disabled={at === 0} onPress={() => setPage(at - 1)} accessibilityRole="button" accessibilityLabel={fa.shop.prev} style={[styles.pageBtn, adult ? styles.pageBtnAdult : null, at === 0 ? styles.buyOff : null]}><Icon name="back" size={18} color={adult ? '#FFE9A8' : colors.ink} strokeWidth={3} /></Pressable>
             <Text style={styles.pageText}>{n(at + 1)} / {n(pages)}</Text>
-            <Pressable disabled={at >= pages - 1} onPress={() => setPage(at + 1)} accessibilityRole="button" accessibilityLabel={fa.shop.next} style={[styles.pageBtn, styles.flipX, at >= pages - 1 ? styles.buyOff : null]}><Icon name="back" size={18} color={colors.ink} strokeWidth={3} /></Pressable>
+            <Pressable disabled={at >= pages - 1} onPress={() => setPage(at + 1)} accessibilityRole="button" accessibilityLabel={fa.shop.next} style={[styles.pageBtn, styles.pageBtnOnAdult, styles.flipX, at >= pages - 1 ? styles.buyOff : null]}><Icon name="back" size={18} color={adult ? '#2A1606' : colors.ink} strokeWidth={3} /></Pressable>
           </View>
         ) : null}
         </View>
@@ -221,6 +230,26 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  /** Adult look (docs/design/adult/Dozari Adult - App Screens, «حجرهٔ دوزاری»): brass plank, bronze pills, dark plates with a gold buy button. */
+  plateAdultBox: { flex: 1 },
+  plateAdult: { alignItems: 'center', justifyContent: 'center' },
+  plateTextAdult: { fontFamily: fonts.display, fontSize: 24, lineHeight: 34, color: '#2A1606' },
+  pillAdult: { height: 32, paddingHorizontal: 8, backgroundColor: '#0E0A08', borderColor: '#8A5A16' },
+  pillTextAdult: { fontSize: 15, color: '#FFE9A8' },
+  tabAdult: { height: 72, borderRadius: 14, borderWidth: 2, borderColor: '#000', backgroundColor: '#2A1E14', gap: 2 },
+  tabOnAdult: { height: 72, borderRadius: 14, borderWidth: 2, borderColor: '#000', backgroundColor: '#E8B64A', transform: [] },
+  tabTextAdult: { fontSize: 15, color: '#FFE9A8' },
+  tabTextOnAdult: { fontSize: 15, color: '#2A1606' },
+  lockAdult: { backgroundColor: 'transparent' },
+  artLockedAdult: { opacity: 0.45 },
+  cardAdult: { borderRadius: 16, borderWidth: 2, borderColor: '#8A5A16', backgroundColor: '#17100C', padding: 10, gap: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0, elevation: 0 },
+  infoAdult: { top: 8, left: 8, borderWidth: 1.5, borderColor: '#8A5A16', backgroundColor: 'transparent' },
+  infoTextAdult: { fontSize: 13, color: 'rgba(255,233,168,0.7)' },
+  nameAdult: { fontSize: 16, lineHeight: 20, color: '#FFE9A8', textAlign: 'center' },
+  subAdult: { fontSize: 11.5, color: 'rgba(255,233,168,0.55)' },
+  buyAdult: { height: 38, borderRadius: 11, borderWidth: 2, borderColor: '#000', backgroundColor: '#E8B64A', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 0 },
+  pageBtnAdult: { width: 40, height: 40, borderRadius: 12, borderWidth: 2, borderColor: '#5A3A1C', backgroundColor: '#17100C' },
+  pageBtnOnAdult: { width: 40, height: 40, borderRadius: 12, borderWidth: 2, borderColor: '#000', backgroundColor: '#E8B64A' },
   /** The small «؟» on a card: tells what the item is (its description shows in Baqal's bubble). */
   info: { position: 'absolute', top: 6, left: 6, zIndex: 2, width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.sky, alignItems: 'center', justifyContent: 'center' },
   infoText: { fontFamily: fonts.display, fontSize: 13, lineHeight: 18, color: colors.ink },

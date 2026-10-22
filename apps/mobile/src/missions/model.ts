@@ -14,6 +14,8 @@ export const GO: Record<MissionKey, MissionGo> = {
   follow_instagram: 'link',
   follow_channel: 'link',
   rate_app: 'link',
+  rate_myket: 'link',
+  rate_bazaar: 'link',
 };
 
 export type MissionState = 'claimed' | 'claim' | 'go';
@@ -29,6 +31,8 @@ export interface MissionAvailability {
   link(key: MissionKey): string | null;
   /** Is the screen of an in-app mission switched on (Bale, settings)? */
   feature(key: MissionKey): boolean;
+  /** A web link to try when the market's app cannot open the first one (not installed, link not understood). */
+  fallback?(key: MissionKey): string | null;
 }
 
 /**

@@ -33,6 +33,28 @@ function boot() {
 }
 const body = { name: 'میز علی', icon: 'dice' as const, requireReady: false, format: '1v1' as const };
 
+describe('table card for bot groups', () => {
+  it('shows public facts of a joinable table and nothing once it cannot take a guest', async () => {
+    const t = boot();
+    const made = await t.svc.create('host', body);
+    if (!made.ok) throw new Error('create');
+    expect(t.svc.card(` ${made.table.code.toLowerCase()} `)).toEqual({ code: made.table.code, name: 'میز علی', format: '1v1', entryFee: 0, seats: 2, taken: 1, hostNickname: 'p-host' });
+    expect(t.svc.card('ZZZZZ')).toBeNull();
+    await t.svc.setLocked('host', true);
+    expect(t.svc.card(made.table.code)).toBeNull();
+    await t.svc.setLocked('host', false);
+    await t.svc.join('guest', made.table.code);
+    expect(t.svc.card(made.table.code)).toBeNull(); // full
+  });
+  it('is gone after the table expires', async () => {
+    const t = boot();
+    const made = await t.svc.create('host', body);
+    if (!made.ok) throw new Error('create');
+    t.clock.ms += 16 * 60_000;
+    expect(t.svc.card(made.table.code)).toBeNull();
+  });
+});
+
 describe('private tables', () => {
   it('host creates, guest joins by a typed code, host starts a duel', async () => {
     const t = boot();

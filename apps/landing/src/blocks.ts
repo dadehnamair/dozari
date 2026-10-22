@@ -1,4 +1,4 @@
-import type { CommentTarget, PublicComment } from './api.js';
+import type { CommentTarget, PublicComment, StoreReview } from './api.js';
 import { escapeHtml } from './markdown.js';
 
 /** Human-readable Persian date of an epoch-ms instant (Solar Hijri, Tehran). */
@@ -42,8 +42,25 @@ ${list}
 </form></section>`;
 }
 
+/**
+ * Store reviews as quote cards: stars (decorative, read out as «۴ از ۵»), the text, who wrote it and the store it came from, linked when
+ * the owner pasted the listing's address. Display only: these are never turned into structured-data ratings.
+ */
+export function reviewsBlock(reviews: StoreReview[]): string {
+  const stars = (n: number) => `<span class="rv-st" role="img" aria-label="${faNum(n)} از ${faNum(5)}">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
+  const card = (r: StoreReview) => {
+    const store = r.url ? `<a href="${escapeHtml(r.url)}" rel="noopener nofollow" target="_blank">${escapeHtml(r.market)}</a>` : escapeHtml(r.market);
+    return `<li class="rv-c"><figure>${r.rating ? stars(r.rating) : ''}<blockquote><p>${escapeHtml(r.body)}</p></blockquote><figcaption><b>${escapeHtml(r.author)}</b><span>در ${store}</span></figcaption></figure></li>`;
+  };
+  return `<ul class="rv-g">${reviews.map(card).join('')}</ul>`;
+}
+
 /** Styles of the pages added after the first release (sitemap, status, stats, guides, press, comments). */
 export const EXTRA_CSS = `
+.rv-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;list-style:none;margin:20px 0;padding:0}.rv-c{background:#fff;border:4px solid var(--ink);border-radius:24px;padding:18px 20px;box-shadow:0 5px 0 var(--ink)}
+.rv-c figure{margin:0;display:grid;gap:10px;height:100%;align-content:space-between}.rv-c blockquote{margin:0}.rv-c blockquote p{margin:0;font-weight:600;overflow-wrap:anywhere;white-space:pre-wrap}
+.rv-st{color:#E8A400;font-size:20px;letter-spacing:2px;direction:ltr;justify-self:start}.rv-st i{font-style:normal;color:#00000026}
+.rv-c figcaption{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;font-size:14px}.rv-c figcaption span{opacity:.7}
 .cm{margin-top:48px;padding:28px;background:#fff;border:4px solid var(--ink);border-radius:28px;box-shadow:0 6px 0 var(--ink)}main.page .cm h2{font-size:34px;margin:0 0 12px}.cm-n{opacity:.6;font-size:.7em}
 .cmts{list-style:none;margin:0 0 24px;padding:0;display:grid;gap:12px}.cmts li{background:var(--cream);border:3px solid var(--ink);border-radius:18px;padding:12px 16px}.cmts p{margin:.3em 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .cm-h{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;font-size:14px}.cm-h time{opacity:.65}.cm-none{opacity:.7}

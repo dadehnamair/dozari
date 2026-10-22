@@ -54,7 +54,7 @@ import { WorkshopScreen } from './src/workshop/WorkshopScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { ToastHost } from './src/toast/ToastHost';
-import { takeLaunchTarget } from './src/pwa/usePwa';
+import { takeInviteHandle, takeLaunchTarget, takeTableCode } from './src/pwa/usePwa';
 import { ErrorBoundary } from './src/errors/ErrorBoundary';
 import { installGlobalErrorReporting } from './src/errors/globalHandlers';
 import { setCurrentScreen } from './src/errors/breadcrumbs';
@@ -107,7 +107,9 @@ function AppInner() {
   const config = useClientConfig();
   const phone = usePhoneGate(config.raw);
   const gate = gateState(config, APP_BUILD);
-  const inviteGate = useInviteLink(gate === 'ok' && config.features.friends);
+  /** A friend's bot invite link (`?go=invite`) is read before the other launch parameters. */
+  const [inviteHandle] = useState(takeInviteHandle);
+  const inviteGate = useInviteLink(gate === 'ok' && config.features.friends, inviteHandle);
   const ageTracksOn = config.raw['feature.age_tracks'] === 1;
   const myTrack = useMyTrack(ageTracksOn && gate === 'ok');
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
@@ -135,7 +137,10 @@ function AppInner() {
   const workshopPromo = homeFeatures.workshop ? { reward: Math.floor((settingNum(config.raw, 'trivia.author_coins', WORKSHOP_AUTHOR_COINS) * (100 + workshopBoost)) / 100), boost: workshopBoost } : undefined;
 
   /** A home-screen shortcut (`?go=`, D102) opens its screen straight after the splash, when that mode is on. */
+  const [tableLink] = useState(takeTableCode);
   const [launch] = useState(takeLaunchTarget);
+  /** A shared table link waits here until Home has opened the table (once). */
+  const [pendingTable, setPendingTable] = useState<string | null>(tableLink);
   // Another account was loaded on this device (phone proof): remount every screen so nothing shows the old account.
   const [epoch, setEpoch] = useState(0);
   useEffect(() => onAccountSwitched(() => (setScreen('home'), setEpoch((e) => e + 1))), []);
@@ -252,6 +257,8 @@ function AppInner() {
       {screen === 'search' ? <SearchScreen onCancel={() => setScreen('gallery')} /> : null}
       {screen === 'home' ? (
         <HomeScreen
+          openTableCode={pendingTable ?? undefined}
+          onTableOpened={() => setPendingTable(null)}
           onSolo={() => setScreen('solo')}
           onPriceOnly={() => setScreen('priceonly')}
           onTrivia={() => setScreen('trivia')}

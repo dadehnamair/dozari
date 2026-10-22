@@ -211,7 +211,11 @@ function editProduct(p) {
     var t = Number(price.value);
     if (!yr.value || !t) return toast('سال و قیمت را وارد کن', true);
     api('/admin/prices', { method: 'POST', body: { productId: p.id, year: Number(yr.value), priceRials: String(Math.round(t * 10)), sourceType: srcT.value, sourceUrl: srcU.value.trim() || null, sourceNote: note.value.trim() || null } }).then(function (r) {
-      if (!r.ok) return fail(r); toast('قیمت ثبت شد؛ برای نمایش در بازی باید تأیید شود'); route();
+      if (!r.ok) return fail(r); toast('قیمت ثبت شد؛ برای نمایش در بازی باید تأیید شود');
+      p.prices.push({ id: r.body.id, year: Number(yr.value), month: null, priceRials: String(Math.round(t * 10)), sourceType: srcT.value, sourceUrl: srcU.value.trim() || null, sourceNote: note.value.trim() || null, confidence: 1, status: 'pending' });
+      p.prices.sort(function (a, b) { return a.year - b.year; });
+      yr.value = ''; price.value = ''; srcU.value = ''; note.value = '';
+      drawPrices(); route();
     });
   } });
   var body = h('div', { style: 'display:flex;flex-direction:column;gap:16px' }, [
@@ -219,12 +223,62 @@ function editProduct(p) {
     field('داستان کوتاه محصول', f.storyFa),
     h('div', {}, [h('div', { text: 'آیکن', style: 'font-weight:700;margin-bottom:6px' }), tile, picker]),
     h('div', {}, [h('div', { text: 'قیمت‌ها', style: 'font-weight:700;margin-bottom:6px' }), h('div', { class: 'm', style: 'color:var(--muted);font-size:13px;margin-bottom:8px', text: rangeText(p) + (p.needsMorePrices ? ' — برای نمایش بازه حداقل چند قیمت در تاریخ‌های مختلف لازم است' : '') }), prices]),
-    h('div', {}, [h('div', { text: 'افزودن قیمت دستی', style: 'font-weight:700;margin-bottom:6px' }), h('div', { class: 'form-grid' }, [field('سال شمسی', yr), field('قیمت (تومان)', price), field('نوع منبع', srcT), field('لینک منبع', srcU), field('توضیح منبع', note)]), h('div', { style: 'margin-top:8px' }, [addBtn])])
+    h('div', {}, [h('div', { text: 'افزودن قیمت دستی', style: 'font-weight:700;margin-bottom:6px' }), h('div', { class: 'form-grid' }, [field('سال شمسی', yr), field('قیمت (تومان)', price), field('نوع منبع', srcT), field('لینک منبع', srcU), field('توضیح منبع', note)]), h('div', { style: 'margin-top:8px;display:flex;gap:8px;flex-wrap:wrap' }, [addBtn, h('button', { class: 'btn', text: '✨ پیشنهاد قیمت با هوش مصنوعی', onclick: function () { aiPriceDialog(p); } })])])
   ]);
   modal(p.nameFa, body, [{ label: 'بستن' }, { label: 'ذخیره', cls: 'primary', keepOpen: true, run: function (close) {
     api('/admin/products/' + p.id, { method: 'PATCH', body: { nameFa: f.nameFa.value.trim(), unitFa: f.unitFa.value.trim() || null, brand: f.brand.value.trim() || null, category: f.category.value, status: f.status.value, ageTrack: f.ageTrack.value, isActive: f.isActive.checked, storyFa: f.storyFa.value.trim() || null, iconKey: icon } }).then(function (r) {
       if (!r.ok) return fail(r); toast('ذخیره شد'); close(); route();
     }); return false; } }]);
+}
+/* «Fill missing prices»: asks the AI studio for nominal prices in years the product has none for; ticked rows are saved as pending prices. */
+function aiPriceDialog(p) {
+  var provider = select([['', 'در حال بارگذاری…']], ''), model = select([['', 'پیش‌فرض سرویس']], '');
+  var hint = h('textarea', { placeholder: 'توضیح اضافه برای هوش مصنوعی (اختیاری): برند، اندازه، شهر…', maxlength: 300 });
+  var from = h('input', { type: 'number', min: 1300, max: 1450, value: 1350 }), to = h('input', { type: 'number', min: 1300, max: 1450, value: 1405 });
+  var out = h('div'), rows = [], saving = false;
+  var go = h('button', { class: 'btn primary', text: 'بگیر', disabled: true });
+  api('/admin/ai').then(function (r) {
+    if (!r.ok) return out.appendChild(banner('warn', 'استودیوی هوش مصنوعی روی این سرور فعال نیست.'));
+    if (!r.body.providers.length) return out.appendChild(banner('warn', AI_ERR.ai_not_configured));
+    clear(provider);
+    r.body.providers.forEach(function (x) { provider.appendChild(h('option', { value: x.id, text: x.label })); });
+    var lastProvider = load('ai.provider');
+    if (lastProvider && r.body.providers.some(function (x) { return x.id === lastProvider; })) provider.value = lastProvider;
+    aiModelPicker(provider, model, function () { return r.body.providers; })();
+    go.disabled = false;
+  });
+  function show(list) {
+    clear(out); rows = [];
+    if (!list.length) return out.appendChild(empty('پیشنهادی برای سال‌های خالی نیامد'));
+    out.appendChild(h('div', { class: 'm', style: 'color:var(--muted);font-size:13px;margin:8px 0', text: 'قیمت‌ها (تومان، اسمی) را بازبینی و اصلاح کن؛ تیک‌خورده‌ها «در انتظار تأیید» ثبت می‌شوند.' }));
+    list.forEach(function (x) {
+      var chk = h('input', { type: 'checkbox', checked: true }), val = h('input', { type: 'number', min: 1, value: x.priceToman, style: 'max-width:180px' });
+      rows.push({ year: x.year, chk: chk, val: val });
+      out.appendChild(h('label', { style: 'display:flex;gap:10px;align-items:center;margin:4px 0' }, [chk, h('span', { class: 'num', text: fa(x.year), style: 'min-width:48px' }), val]));
+    });
+  }
+  go.onclick = function () {
+    go.disabled = true; clear(out); out.appendChild(h('div', { class: 'm', text: 'در حال گرفتن پیشنهاد…', style: 'color:var(--muted)' }));
+    api('/admin/ai/product-prices', { method: 'POST', body: { provider: provider.value, model: model.value.trim() || undefined, productId: p.id, hint: hint.value.trim() || undefined, fromYear: Number(from.value) || undefined, toYear: Number(to.value) || undefined } }).then(function (r) {
+      go.disabled = false; clear(out);
+      if (!r.ok) return out.appendChild(banner('warn', aiErrorText(r.body, 'گرفتن پیشنهاد ناموفق بود.')));
+      show(r.body.prices);
+    });
+  };
+  var close = modal('پیشنهاد قیمت — ' + p.nameFa, h('div', { style: 'display:flex;flex-direction:column;gap:12px' }, [
+    h('div', { class: 'form-grid' }, [field('سرویس', provider), field('مدل', model), field('از سال', from), field('تا سال', to)]),
+    field('توضیح اضافه', hint), h('div', {}, [go]), out
+  ]), [{ label: 'بستن' }, { label: 'ثبت تیک‌خورده‌ها', cls: 'primary', keepOpen: true, run: function (done) {
+    var picked = rows.filter(function (x) { return x.chk.checked && Number(x.val.value) > 0; });
+    if (!picked.length || saving) return false;
+    saving = true;
+    var ok = 0, i = 0;
+    (function next() {
+      if (i >= picked.length) { saving = false; toast(fa(ok) + ' قیمت ثبت شد؛ برای نمایش در بازی باید تأیید شود'); done(); route(); return; }
+      var x = picked[i++];
+      api('/admin/prices', { method: 'POST', body: { productId: p.id, year: x.year, priceRials: String(Math.round(Number(x.val.value) * 10)), sourceType: 'other', sourceUrl: null, sourceNote: 'AI-suggested, unverified' } }).then(function (r) { if (r.ok) ok++; next(); });
+    })();
+    return false; } }]);
 }
 function setPrice(x, status, redraw) {
   api('/admin/prices/' + x.id, { method: 'PATCH', body: { status: status } }).then(function (r) {

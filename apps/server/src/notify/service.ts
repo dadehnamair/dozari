@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import { MUTABLE_NOTIFY_KINDS, normalizeIranPhone } from '@dozari/shared';
 import type { MutableNotifyKind } from '@dozari/shared';
 import { RateLimiter } from '../security/rate-limit.js';
+import { isTelegramId } from './client.js';
 import type { BaleClient, BaleUpdate } from './client.js';
 import type { BaleInvoice, BalePaid, PreCheckout } from '../economy/coin-packages.js';
 import type { PhoneService } from '../phone/service.js';
@@ -22,9 +23,14 @@ const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 /** Kinds of notification; admin settings can switch the automatic ones off. */
 export type NotifyKind = 'match_result' | 'daily_ready' | 'friend_request' | 'table_invite' | 'chat_message' | 'broadcast' | 'admin' | 'security' | 'test';
 
+/** Kinds sent to the Android app as a push from `notify` (the others already have their own app-push route). */
+const APP_PUSH_KINDS: ReadonlySet<NotifyKind> = new Set<NotifyKind>(['match_result']);
+
 export class NotifyService {
   /** Wrong link codes per chat: 8 in 10 minutes, then the bot stays quiet (a 6-character code must not be guessable). */
   private readonly badCodes = new RateLimiter(8, 10 * 60_000);
+  /** Help text for chatter that is not a command or a code: once per 10 minutes per chat, so typing anything does not get the same reply every time. */
+  private readonly strayHelp = new RateLimiter(1, 10 * 60_000, () => this.now());
 
   constructor(
     private readonly store: NotifyStore,
@@ -94,11 +100,19 @@ export class NotifyService {
     return this.store.unlinkUser(userId);
   }
 
-  /** Queues a message for a player; false when they have not linked Bale (nothing is stored then). */
+  /**
+   * Set at start-up when the Android app push is configured. Friend requests, table invites and chat reach the app through the
+   * live-notice pipe already; this is for what only Bale carried before (match results), so it sends the app push for those kinds.
+   */
+  appPush?: (userId: string, kind: NotifyKind, text: string) => Promise<unknown>;
+
+  /** Queues a message for a player (Bale) and pushes it to their app; false when they have not linked Bale (nothing is stored then). */
   async notify(userId: string, kind: NotifyKind, text: string): Promise<boolean> {
+    const muted = (MUTABLE_NOTIFY_KINDS as readonly string[]).includes(kind) ? await this.store.mutedKinds(userId) : [];
+    if (this.appPush && APP_PUSH_KINDS.has(kind) && !muted.includes(kind)) void this.appPush(userId, kind, text).catch(() => undefined);
     const chatId = await this.store.chatOf(userId);
     if (!chatId) return false;
-    if ((MUTABLE_NOTIFY_KINDS as readonly string[]).includes(kind) && (await this.store.mutedKinds(userId)).includes(kind)) return false;
+    if (muted.includes(kind)) return false;
     await this.store.enqueue({ chatId, userId, kind, text });
     return true;
   }
@@ -151,8 +165,15 @@ export class NotifyService {
     return due.length;
   }
 
+  /** Set at start-up when the bot can play in groups (docs/logic/group-game.md); it takes group chats and its own button taps first. */
+  groups?: { handleUpdate(update: BaleUpdate): Promise<boolean> };
+
+  /** The player's personal invite link into the mini-app for this messenger (docs/logic/group-game.md §Personal invite link); null = none can be made. */
+  inviteLink?: (userId: string, telegram: boolean) => Promise<string | null>;
+
   /** One incoming message of the bot: link code, /status, /stop, else help. */
   async handleUpdate(update: BaleUpdate): Promise<void> {
+    if (this.groups && (await this.groups.handleUpdate(update))) return;
     if (update.pre_checkout_query) return this.handlePreCheckout(update.pre_checkout_query);
     const msg = update.message;
     if (msg?.successful_payment) return this.handlePaid(msg.chat.id, msg.successful_payment);
@@ -163,6 +184,12 @@ export class NotifyService {
     const reply = (t: string) => this.client!.sendMessage(chatId, t).catch(() => undefined);
     const cmd = text.split(/\s+/)[0]!.toLowerCase();
     if (cmd === '/stop') return void (await reply((await this.store.unlinkChat(chatId)) ? BALE_TEXT.stopped : BALE_TEXT.notLinked));
+    if (cmd === '/invite') {
+      // A linked chat or a mini-app player (the messenger id maps to their account) gets their own link; nobody else has an account to invite from.
+      const userId = (await this.store.userOfChat(chatId)) ?? (msg.from?.id === undefined ? null : ((await this.miniAppUserOf?.(String(msg.from.id))) ?? null));
+      const link = userId && this.inviteLink ? await this.inviteLink(userId, isTelegramId(chatId)).catch(() => null) : null;
+      return void (await reply(link ? BALE_TEXT.invite(link) : BALE_TEXT.inviteNone));
+    }
     if (cmd === '/status') {
       const mine = (await this.store.allLinked()).some((l) => l.chatId === chatId);
       return void (await reply(mine ? BALE_TEXT.statusLinked : BALE_TEXT.notLinked));
@@ -174,7 +201,10 @@ export class NotifyService {
       if (await this.store.userOfChat(chatId)) return void (await reply(BALE_TEXT.statusLinked));
       return void (await this.client.sendMessage(chatId, BALE_TEXT.welcome, { contactButton: BALE_TEXT.contactButton }).catch(() => undefined));
     }
-    if (!candidate || !/^[A-Z0-9]{4,12}$/.test(candidate)) return void (await reply(BALE_TEXT.help));
+    if (!candidate || !/^[A-Z0-9]{4,12}$/.test(candidate)) {
+      if (cmd === '/help' || this.strayHelp.take(chatId)) await reply(BALE_TEXT.help);
+      return;
+    }
     if (this.badCodes.blocked(chatId)) return;
     const linked = await this.store.redeemCode(candidate, chatId, this.now());
     if (!linked) this.badCodes.take(chatId);

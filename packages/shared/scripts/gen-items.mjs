@@ -45,6 +45,15 @@ const typed = (t) =>
   .replace('const TK=(c,t1,t2,ex=[])=>({p:', 'const TK=(c: string,t1: string,t2: string,ex: Part[]=[]): Icon=>({p: <Part[]>')
   .replace("let PERF='';", "let PERF = '';")
   .replace(/^const S=(\{.*\});$/m, 'export const SAMPLE_ICONS: Record<string, string> = $1;');
+// A builder of the design file that no icon calls (the designer keeps some around) would be an unused const and fail the lint (max-warnings 0): drop
+// each single-line arrow builder whose name occurs once, repeating because dropping one can leave a helper it used unused.
+const pruneUnused = (t) => {
+  for (;;) {
+    const dead = [...t.matchAll(/^const (\w+)=\(.*\n/gm)].find((m) => (t.match(new RegExp(`\\b${m[1]}\\b`, 'g')) ?? []).length === 1);
+    if (!dead) return t;
+    t = t.replace(dead[0], '');
+  }
+};
 // An entry is a literal `{p:[...]}` or a call of a builder of the design file (`CAR(...)`, `BOWL(...)`, `TIX(...)`).
 const keys = [...body.matchAll(/^'?([A-Za-z0-9_-]+)'?:(?:\{p:|[A-Z]+\()/gm)].map((m) => m[1]);
 writeFileSync(
@@ -58,7 +67,7 @@ export type Part = [string, string, (string | number)?, string?];
 export type ItemText = [number, number, number, string, string];
 type Icon = { p: Part[]; t?: ItemText[] };
 
-${typed(consts + productConsts + builders + body)}`,
+${pruneUnused(typed(consts + productConsts + builders + body))}`,
 );
 
 /** Categories and Persian names come from design 12 (items) and 14 (products). */

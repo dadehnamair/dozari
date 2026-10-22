@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { Item } from '../components/Item';
 import { GradientFill } from '../components/GradientFill';
 import { fa } from '../i18n/fa';
+import { GroupPip } from './GroupPips';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
 import { EDGE_LEFT, EDGE_RIGHT, TEXT_LEFT } from '../theme/direction';
@@ -75,7 +76,7 @@ function Card({ side, tone, onChat, chatOpen = false, chatCooling = false }: { s
             {side.level ? <View style={styles.lv}><Text style={styles.lvText}>{toPersianDigits(String(side.level))}</Text></View> : null}
           </View>
           <View style={[styles.pips, { flexDirection: mine ? ROW : ROW_OUT }]}>
-            {[0, 1, 2, 3].map((i) => <View key={i} style={[styles.pip, { backgroundColor: i < side.groups ? base : 'rgba(255,255,255,0.15)' }]} />)}
+            {[0, 1, 2, 3].map((i) => <GroupPip key={i} lit={i < side.groups} style={[styles.pip, { backgroundColor: i < side.groups ? base : 'rgba(255,255,255,0.15)' }]} />)}
           </View>
         </View>
       </View>

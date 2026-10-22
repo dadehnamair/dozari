@@ -203,6 +203,16 @@ export class TableService {
     return t && t.seated.includes(userId) ? [...t.seated] : null;
   }
 
+  /**
+   * What a bot group may show about a table when someone posts its code there (docs/logic/group-game.md §Table card): public facts only,
+   * no player ids. A family table, a locked, full or playing one, or one that is gone gives null (nothing to join).
+   */
+  card(codeRaw: string): { code: string; name: string; format: TableFormat; entryFee: number; seats: number; taken: number; hostNickname: string } | null {
+    const t = this.live(codeRaw);
+    if (!t || t.family || t.locked || t.seated.length >= seatsOfFormat(t.format) || this.statusOf(t) === 'playing') return null;
+    return { code: t.code, name: t.name, format: t.format, entryFee: t.entryFee, seats: seatsOfFormat(t.format), taken: t.seated.length, hostNickname: t.hostNickname };
+  }
+
   /** The table the player currently sits at, if any (to reopen the screen). */
   async mine(userId: string): Promise<TableView | null> {
     const code = this.byUser.get(userId);

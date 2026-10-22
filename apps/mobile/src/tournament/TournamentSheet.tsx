@@ -26,12 +26,17 @@ import { LivePulse, LoserFade, StampIn, WinnerHop } from './MatchFx';
 import { Winners } from './Winners';
 import { blockedText, currentRound, placeLabel, roundLabel, startsInText, turnWhen } from './text';
 import { pageTop } from '../theme/safeArea';
+import { useTheme } from '../theme/themeStore';
+import { Medal, Plate } from '../duel/adultKit';
 import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
 const when = (ms: number) => new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ms));
 const TINTS = ['#FFE48A', '#3FC1F0', '#FF8FB6', '#B8F08F', '#C9A3FF', '#FFAA7A'];
+/** Status pill of a cup in the adult look: a dark pill, its frame and text coloured by state (design: «تمام شد» bronze, «لغو شد» red). */
+const STATUS_ADULT: Record<string, { bd: string; fg: string }> = { open: { bd: '#5E9E3C', fg: '#B8F08F' }, running: { bd: '#E8B64A', fg: '#FFE9A8' }, cancelled: { bd: '#C4302B', fg: '#FF8A80' } };
+const STATUS_ADULT_DEFAULT = { bd: '#6E5A40', fg: 'rgba(255,233,168,0.6)' };
 const STATUS_TONE: Record<string, string> = { full: '#FFAA7A', open: '#7ED957', running: '#FFC93C', finished: '#C9A3FF', draft: '#C9A3FF', cancelled: '#FF8FB6' };
 
 /** «تورنومنت‌ها»: the list (orange page) and a tournament's own page (screen-tournament of `11 More Screens`). */
@@ -39,6 +44,7 @@ const STATUS_TONE: Record<string, string> = { full: '#FFAA7A', open: '#7ED957', 
 export function TournamentSheet({ onClose, invite = null }: { onClose: () => void; invite?: { title: string; body: string; url: string } | null }) {
   const [list, setList] = useState<TournamentListItem[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const adult = useTheme() === 'adult';
   useEffect(() => {
     if (openId === null) return swr('tournaments', fetchTournaments, setList, () => setList([]));
     return undefined;
@@ -47,12 +53,27 @@ export function TournamentSheet({ onClose, invite = null }: { onClose: () => voi
   return (
     <PageShell title={fa.tournament.title} color={colors.candy.orange} backLabel={fa.tournament.close} onBack={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
-        <GuideBubble who="pahlevan" text={fa.tournament.pahlevanHello} />
+        <GuideBubble who={adult ? 'mashti' : 'pahlevan'} text={fa.tournament.pahlevanHello} />
         {list === null ? <SkeletonRows rows={4} avatar={false} /> : null}
         {list && list.length === 0 ? <EmptyNote skin={0} pose="sad" text={fa.tournament.empty} /> : null}
         {list?.map((t, i) => (
           <Pressable key={t.id} onPress={() => setOpenId(t.id)} accessibilityRole="button">
-            {({ pressed }) => (
+            {({ pressed }) => adult ? (
+              <Plate radius={16} border="#5A3A1C" from="#17100C" to="#17100C" ledge={0} style={[styles.cardAdult, pressed ? styles.pressed : null]}>
+                <Medal size={52} radius={14}><View style={styles.tileIconAdult}><Item icon={t.iconKey ?? 'trophy'} /></View></Medal>
+                <View style={styles.cardBody}>
+                  <Text style={styles.cardTitleAdult} numberOfLines={2}>{t.titleFa}</Text>
+                  <Text style={styles.cardSubAdult}>{fa.tournament.joined(t.joined, t.size)} · {fa.tournament.entry(t.entryCoins, t.entryGems)}</Text>
+                  <Text style={styles.cardDateAdult}>{fa.tournament.starts}: {when(t.startsAt)}{t.entered ? ` · ${fa.tournament.mine}` : ''}</Text>
+                  {t.sponsor ? <SponsorTag sponsor={t.sponsor} /> : null}
+                </View>
+                {(() => {
+                  const label = t.status === 'open' && t.joined >= t.size && !t.entered ? 'full' : t.status;
+                  const c = STATUS_ADULT[label] ?? STATUS_ADULT_DEFAULT;
+                  return <View style={[styles.chipAdult, { borderColor: c.bd }]}><Text style={[styles.chipTextAdult, { color: c.fg }]}>{fa.tournament.status[label]}</Text></View>;
+                })()}
+              </Plate>
+            ) : (
               <View style={[styles.card, pressed ? styles.pressed : null]}>
                 <View style={[styles.tile, { backgroundColor: TINTS[i % TINTS.length] }]}>
                   <View style={styles.tileIcon}><Item icon={t.iconKey ?? 'trophy'} /></View>
@@ -270,7 +291,14 @@ function MatchCard({ m, onPlayer }: { m: BracketMatch; onPlayer: (playerId: stri
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  list: { gap: 8, paddingBottom: 24 },
+  list: { gap: 10, paddingBottom: 24 },
+  cardAdult: { flexDirection: ROW, alignItems: 'center', gap: 10, padding: 12 },
+  tileIconAdult: { width: 36, height: 36 },
+  cardTitleAdult: { fontFamily: fonts.display, fontSize: 17, lineHeight: 24, color: '#FFE9A8', textAlign: TEXT_RIGHT },
+  cardSubAdult: { fontFamily: fonts.bold, fontSize: 11.5, color: 'rgba(255,233,168,0.65)', textAlign: TEXT_RIGHT },
+  cardDateAdult: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,233,168,0.5)', textAlign: TEXT_RIGHT },
+  chipAdult: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 99, borderWidth: 1.5, backgroundColor: '#0E0A08' },
+  chipTextAdult: { fontFamily: fonts.display, fontSize: 13, lineHeight: 22 },
   note: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', marginTop: 12 },
   pressed: { transform: [{ translateY: 3 }] },
   card: { flexDirection: ROW, alignItems: 'center', gap: 10, padding: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, ...lift(4) },
