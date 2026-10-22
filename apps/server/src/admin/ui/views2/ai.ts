@@ -215,6 +215,22 @@ function aiManual(root) {
         inputs[key] = el;
         return field(f[1], el);
       });
+      if (result.kind === 'products') {
+        var priceBtn = h('button', { class: 'btn sm', type: 'button', text: 'پیشنهاد قیمت با هوش مصنوعی' });
+        priceBtn.addEventListener('click', function () {
+          var nm = inputs.nameFa.value.trim();
+          if (nm.length < 2) return toast('اول نام محصول را بنویس', true);
+          priceBtn.disabled = true;
+          api('/admin/ai/product-prices', { method: 'POST', body: { provider: provider.value, model: model.value || undefined, nameFa: nm, unitFa: inputs.unitFa.value.trim() || null } }).then(function (r) {
+            priceBtn.disabled = false;
+            if (!r.ok) return toast(aiErrorText(r.body, 'گرفتن پیشنهاد قیمت ناموفق بود.'), true);
+            var got = (r.body && r.body.prices) || [];
+            if (!got.length) return toast('هوش مصنوعی قیمتی پیشنهاد نداد', true);
+            inputs.prices.value = aiPricesText(got);
+          });
+        });
+        fields.push(priceBtn);
+      }
       var title = result.kind === 'kid_lessons' ? (d.nameFa || '') : result.kind === 'puzzle_titles' ? 'سطح ' + fa(d.level + 1) : '';
       return { use: use, inputs: inputs, draft: d, node: h('section', { class: 'card' }, [h('label', { style: 'display:flex;gap:8px;align-items:center;margin-bottom:8px' }, [use, h('b', { text: 'پیشنهاد ' + fa(i + 1) + (title ? ' · ' + title : '') })]), h('div', { class: 'form-grid' }, fields)]) };
     });
