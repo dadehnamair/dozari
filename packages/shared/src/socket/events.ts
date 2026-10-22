@@ -73,6 +73,8 @@ export const liveNoticeSchema = z.object({
   kind: z.enum(LIVE_NOTICE_KINDS),
   /** Nickname of the player who sent the friend request, invited to a table, or asked to sit at one. */
   from: z.string().optional(),
+  /** Id of that player (private messages), so a tap can open their chat. */
+  fromId: z.string().uuid().optional(),
   /** Table notices: the table's code (invite) and, for an answer, whether the host let the player in. */
   code: z.string().optional(),
   accepted: z.boolean().optional(),
@@ -288,6 +290,8 @@ export const matchViewSchema = z.object({
   turnId: z.number().int().positive(),
   /** Absolute epoch ms when the active turn times out. */
   turnEndsAt: z.number().int(),
+  /** Epoch ms when the turn begins (after the pause between boards); absent in older snapshots = it began already. */
+  turnStartsAt: z.number().int().optional(),
   status: z.enum(['playing', 'finished']),
   result: matchResultSchema.nullable(),
   /** Set while the duel's price-guess round runs (the board is over, the match is not): render the round instead of the board. */

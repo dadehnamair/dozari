@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { isLastLife, toPersianDigits } from '@dozari/shared';
+import { BOARD_PAUSE_SECONDS, isLastLife, toPersianDigits } from '@dozari/shared';
 import type { TauntCategory } from '@dozari/shared';
 import { fetchTaunts } from '../chat/api';
 import { Board, WRONG_SHAKE_MS } from '../components/Board';
@@ -52,6 +52,7 @@ import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
 import { SearchScreen } from '../search/SearchScreen';
 import { Versus } from './Versus';
+import { RoundIntro } from './RoundIntro';
 import { EndSplash } from './EndSplash';
 import { LeaveGuard } from './LeaveGuard';
 import { fetchWheel } from '../wheel/api';
@@ -60,6 +61,8 @@ import { WheelPage } from '../wheel/WheelPage';
 const FLASH_MS = 1500;
 /** The versus card stays up this long once a rival is found (the turn clock is 45s by default). */
 const INTRO_MS = 3000;
+/** The box between two boards of a multi-board match; the server holds the turn for the same time. */
+const ROUND_INTRO_MS = BOARD_PAUSE_SECONDS * 1000;
 const LEAVE_ARM_MS = 3000;
 /** How long a taunt floats under its sender's card, and the pause before the next one. */
 const BUBBLE_MS = 3200;
@@ -168,7 +171,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }, [myBubble]);
   useEffect(() => {
     if (!state.boardNote) return;
-    const id = setTimeout(() => dispatch({ t: 'clearBoard' }), 3500);
+    const id = setTimeout(() => dispatch({ t: 'clearBoard' }), ROUND_INTRO_MS);
     return () => clearTimeout(id);
   }, [state.boardNote]);
   useEffect(() => {
@@ -451,7 +454,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
         />
         {!prefs.reduceMotion && !splashDone ? <EndSplash outcome={outcome} me={{ who: lines[0]!.who, name: lines[0]!.name }} rival={{ who: lines[1]!.who, name: lines[1]!.name }} onDone={() => setSplashDone(true)} /> : null}
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
-        {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
+      {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
           <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
         ) : null}
@@ -544,7 +547,11 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const frozenMe = frozenMs > 0 && playing;
   const frozenRival = (view.frozenUntil?.[them] ?? 0) > now;
   const powerText = frozenMe ? fa.duel.power.frozenLeft(Math.ceil(frozenMs / 1000)) : state.powerNote ? fa.duel.power.notes[state.powerNote] ?? null : null;
-  const toast = leaveArmed ? (leaveLeft === null ? a.leaveSure : a.leaveSureLeft(leaveLeft)) : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
+  // The board that just ended was won by somebody finding all four groups: say who, whichever side it was.
+  const wonBefore = state.prevBoard?.boardsWon;
+  const wonNow = view.boardsWon;
+  const roundNote = wonBefore && wonNow ? (wonNow[me] > wonBefore[me] ? a.roundIntro.youDone : wonNow[them] > wonBefore[them] ? a.roundIntro.rivalDone : null) : null;
+  const toast = leaveArmed ? (leaveLeft === null ? a.leaveSure : a.leaveSureLeft(leaveLeft)) : powerText ? powerText : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
   /** The submit button lights up only when this player can really submit now: their side's turn, they are the captain, four cards are picked, no answer pending. */
   const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale && !frozenMe;
   /** The power-ups work on the player's own turn, for the captain, while no answer is pending. */
@@ -651,9 +658,9 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             {toast ? <View style={styles.toastOver} pointerEvents="none">{adult ? <ToastAdult text={toast} /> : <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View>}</View> : null}
           </View>
 
-          {adult ? <Plate radius={22} border="#E0895A" from="#17100C" to="#0E0A08" ledge={6} style={styles.boardAdult}><Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale && !view.found} faceDown={!!view.found && playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
+          {adult ? <Plate radius={22} border="#E0895A" from="#17100C" to="#0E0A08" ledge={6} style={styles.boardAdult}><Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe || !!state.boardNote} muted={playing && !mine && !state.finale && !view.found} faceDown={!!view.found && playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}</Plate> : <View style={styles.boardPanel}>
-            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale && !view.found} faceDown={!!view.found && playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
+            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe || !!state.boardNote} muted={playing && !mine && !state.finale && !view.found} faceDown={!!view.found && playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
           </View>}
 
@@ -688,6 +695,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
         </View>
       </ScrollView>
       <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} categories={taunts} tab={chatTab} onTab={setChatTab} onSend={sendTaunt} />
+      {state.boardNote ? <RoundIntro key={state.boardNote.board} board={state.boardNote.board} of={state.boardNote.of} seconds={ROUND_INTRO_MS / 1000} note={roundNote} still={prefs.reduceMotion} /> : null}
       {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
     </ArenaBackground>
   );

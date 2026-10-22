@@ -7,8 +7,9 @@ export type ProfileTaskKey = (typeof PROFILE_TASK_KEYS)[number];
 /**
  * Other one-time missions (D163). `first_win` and `invite_friend` are checked on the server; the other three cannot be
  * verified (a follow or a store review happens outside the app), so they are honour claims with a small reward.
+ * `rate_myket` / `rate_bazaar` are the same honour claim but open the store's own comment screen; each is shown only in the build shipped through that market.
  */
-export const OTHER_MISSION_KEYS = ['first_win', 'invite_friend', 'follow_instagram', 'follow_channel', 'rate_app'] as const;
+export const OTHER_MISSION_KEYS = ['first_win', 'invite_friend', 'follow_instagram', 'follow_channel', 'rate_app', 'rate_myket', 'rate_bazaar'] as const;
 export const MISSION_KEYS = [...PROFILE_TASK_KEYS, ...OTHER_MISSION_KEYS] as const;
 export type MissionKey = (typeof MISSION_KEYS)[number];
 export const missionKeySchema = z.enum(MISSION_KEYS);

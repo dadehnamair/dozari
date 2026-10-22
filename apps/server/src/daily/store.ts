@@ -58,7 +58,7 @@ export interface DailyStore {
   payReward(userId: string, dateKey: string, coins: number): Promise<void>;
   titleOf(themeId: string): Promise<string | null>;
   /** Approved puzzles with their group titles, for the admin pickers. */
-  puzzleSummaries(limit: number): Promise<{ id: string; titles: string[] }[]>;
+  puzzleSummaries(limit: number): Promise<{ id: string; titles: string[]; reviewedAt: number | null }[]>;
 }
 
 export function createDbDailyStore(db: Db): DailyStore {
@@ -173,10 +173,10 @@ export function createDbDailyStore(db: Db): DailyStore {
       await db.transaction((tx) => applyLedgerEntry(tx, { userId, delta: coins, reason: 'daily_puzzle', refType: 'daily_puzzle', refId: dateKey, idempotencyKey: `daily_puzzle:${dateKey}:${userId}` }));
     },
     async puzzleSummaries(limit) {
-      const ps = await db.select({ id: puzzles.id }).from(puzzles).where(eq(puzzles.status, 'approved')).orderBy(desc(puzzles.createdAt)).limit(limit);
+      const ps = await db.select({ id: puzzles.id, reviewedAt: puzzles.reviewedAt }).from(puzzles).where(eq(puzzles.status, 'approved')).orderBy(desc(puzzles.createdAt)).limit(limit);
       if (ps.length === 0) return [];
       const gs = await db.select({ puzzleId: puzzleGroups.puzzleId, title: puzzleGroups.titleFa }).from(puzzleGroups).where(inArray(puzzleGroups.puzzleId, ps.map((p) => p.id))).orderBy(asc(puzzleGroups.level));
-      return ps.map((p) => ({ id: p.id, titles: gs.filter((g) => g.puzzleId === p.id).map((g) => g.title ?? '') }));
+      return ps.map((p) => ({ id: p.id, titles: gs.filter((g) => g.puzzleId === p.id).map((g) => g.title ?? ''), reviewedAt: p.reviewedAt?.getTime() ?? null }));
     },
     async titleOf(themeId) {
       const [r] = await db.select({ t: puzzleThemes.titleFa }).from(puzzleThemes).where(eq(puzzleThemes.id, themeId)).limit(1);
@@ -256,6 +256,6 @@ export function createMemoryDailyStore(approved: string[] = []): DailyStore & { 
       if (!paid.some((p) => p.userId === userId && p.dateKey === dateKey)) paid.push({ userId, dateKey, coins });
     },
     async titleOf(id) { return themes.get(id)?.titleFa ?? null; },
-    async puzzleSummaries() { return approved.map((id) => ({ id, titles: [id] })); },
+    async puzzleSummaries() { return approved.map((id) => ({ id, titles: [id], reviewedAt: null })); },
   };
 }

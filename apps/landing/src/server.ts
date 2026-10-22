@@ -4,7 +4,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { CommentTarget, ContentApi, LandingData, Post, PostSummary } from './api.js';
 import { flashOf } from './blocks.js';
 import { llmsFull, llmsTxt, ogCard, robots, sitemap, sitemapXsl } from './discovery.js';
-import { buildStatus, castMemberPage, glossaryPage, howToPage, modesPage, pressPage, rssFeed, securityTxt, sitemapPage, statsPage, statusPage } from './more.js';
+import { buildStatus, castMemberPage, glossaryPage, howToPage, modesPage, pressPage, reviewsPage, rssFeed, securityTxt, sitemapPage, statsPage, statusPage } from './more.js';
 import { aboutPage, agesPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, termsPage, unavailablePage } from './pages.js';
 import type { Site } from './seo.js';
 
@@ -159,7 +159,14 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     return send(reply, 200, aboutPage(siteOf(data, opts.siteUrl), data.cast));
   });
   app.get('/ages', async (_req, reply) => send(reply, 200, agesPage(siteOf(await api.landing(), opts.siteUrl))));
-  app.get('/download', async (_req, reply) => send(reply, 200, downloadPage(siteOf(await api.landing(), opts.siteUrl))));
+  app.get('/download', async (_req, reply) => {
+    const data = await api.landing();
+    return send(reply, 200, downloadPage(siteOf(data, opts.siteUrl), data.reviews ?? []));
+  });
+  app.get('/reviews', async (_req, reply) => {
+    const data = await api.landing();
+    return send(reply, 200, reviewsPage(siteOf(data, opts.siteUrl), data.reviews ?? []));
+  });
   app.get('/contact', async (_req, reply) => {
     const data = await api.landing();
     return send(reply, 200, contactPage(siteOf(data, opts.siteUrl), data.faq));

@@ -306,6 +306,8 @@ export const puzzles = mysqlTable('puzzles', {
   ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
   timesPlayed: int('times_played').notNull().default(0),
   avgSolveRate: double('avg_solve_rate'),
+  /** When an admin last re-checked the puzzle (بازبینی); null = never reviewed. Has no effect on serving. */
+  reviewedAt: datetime('reviewed_at', { mode: 'date', fsp: 3 }),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
@@ -327,6 +329,10 @@ export const puzzleTopics = mysqlTable('puzzle_topics', {
   id: id(),
   slug: varchar('slug', { length: 50 }).notNull().unique(),
   nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  /** Key of the hand-drawn icon pack (`ITEMS`) shown for the topic in the app; null = the app's fallback. */
+  iconKey: varchar('icon_key', { length: 40 }),
+  /** Emoji shown for the topic in bot messages (Bale/Telegram cannot draw the icon pack); null = none. */
+  emoji: varchar('emoji', { length: 16 }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
 });
@@ -586,6 +592,12 @@ export const userClients = mysqlTable('user_clients', {
   /** The market of the first build seen for this account. */
   firstStore: varchar('first_store', { length: 12 }),
   firstBuild: int('first_build'),
+  /** The web build runs as an installed PWA now / the first time it was seen. */
+  pwa: boolean('pwa').notNull().default(false),
+  firstPwa: boolean('first_pwa').notNull().default(false),
+  /** Where a link that brought the player came from (`g<ref>` = a bot group, docs/logic/group-game.md §Funnel): the latest one seen, and the one the account first arrived with. */
+  src: varchar('src', { length: 16 }),
+  firstSrc: varchar('first_src', { length: 16 }),
   firstSeenAt: datetime('first_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
@@ -628,6 +640,7 @@ export const LEDGER_REASONS = [
   'trivia_entry',
   'trivia_payout',
   'trivia_refund',
+  'group_play',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -736,6 +749,76 @@ export const baleLinks = mysqlTable(
     mutedKinds: varchar('muted_kinds', { length: 200 }).notNull().default(''),
   },
   (table) => ({ uniqChat: uniqueIndex('bale_links_chat_uq').on(table.chatId) }),
+);
+
+/** A Bale/Telegram group the bot sits in (docs/logic/group-game.md). Telegram chat ids keep the `tg:` prefix. `removedAt` = the bot was removed. */
+export const botGroups = mysqlTable('bot_groups', {
+  chatId: varchar('chat_id', { length: 40 }).primaryKey(),
+  platform: mysqlEnum('platform', ['bale', 'telegram']).notNull(),
+  title: varchar('title', { length: 200 }).notNull().default(''),
+  /** Short opaque code in the group's mini-app links (`?startapp=daily_g<ref>`), so a new account can be traced to the group. */
+  ref: varchar('ref', { length: 12 }),
+  addedAt: datetime('added_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  removedAt: datetime('removed_at', { mode: 'date', fsp: 3 }),
+}, (t) => ({ uniqRef: uniqueIndex('bot_groups_ref_uq').on(t.ref) }));
+
+/** One daily-puzzle play per group per Tehran day; the primary key is the one-play rule. */
+export const botGroupPlays = mysqlTable(
+  'bot_group_plays',
+  {
+    chatId: varchar('chat_id', { length: 40 }).notNull().references(() => botGroups.chatId, { onDelete: 'cascade' }),
+    dateKey: char('date_key', { length: 10 }).notNull(),
+    result: mysqlEnum('result', ['playing', 'won', 'lost']).notNull().default('playing'),
+    mistakes: int('mistakes').notNull().default(0),
+    solvedGroups: int('solved_groups').notNull().default(0),
+    players: int('players').notNull().default(0),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.chatId, t.dateKey] }) }),
+);
+
+/** A group member's tally for one week (named by its Saturday) in one group chat: the weekly `/top` of docs/logic/group-game.md. `userRef` is the messenger user id (Telegram ids keep `tg:`). */
+export const botGroupScores = mysqlTable(
+  'bot_group_scores',
+  {
+    chatId: varchar('chat_id', { length: 40 }).notNull().references(() => botGroups.chatId, { onDelete: 'cascade' }),
+    weekKey: char('week_key', { length: 10 }).notNull(),
+    userRef: varchar('user_ref', { length: 40 }).notNull(),
+    name: varchar('name', { length: 100 }).notNull().default(''),
+    points: int('points').notNull().default(0),
+    groups: int('groups').notNull().default(0),
+    wrong: int('wrong').notNull().default(0),
+    /** The game account behind `user_ref` when the messenger id maps to one at scoring time (D249); null = not linked. */
+    userId: char('user_id', { length: 36 }),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.chatId, t.weekKey, t.userRef] }), byUser: index('bot_group_scores_user_idx').on(t.userId) }),
+);
+
+/** What group play paid one account on one Tehran day (D249): the daily cap and the amounts already credited. */
+export const groupRewards = mysqlTable(
+  'group_rewards',
+  {
+    userId: fk('user_id').references(() => users.id),
+    dateKey: char('date_key', { length: 10 }).notNull(),
+    points: int('points').notNull().default(0),
+    coins: int('coins').notNull().default(0),
+    xp: int('xp').notNull().default(0),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey] }) }),
+);
+
+/** How many `/price` sessions a group started on a Tehran day (the daily cap of docs/logic/group-game.md §Price mode). */
+export const botGroupPriceSessions = mysqlTable(
+  'bot_group_price_sessions',
+  {
+    chatId: varchar('chat_id', { length: 40 }).notNull().references(() => botGroups.chatId, { onDelete: 'cascade' }),
+    dateKey: char('date_key', { length: 10 }).notNull(),
+    sessions: int('sessions').notNull().default(0),
+    /** `/question` sessions of the same day (same cap rule, own counter). */
+    questionSessions: int('question_sessions').notNull().default(0),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.chatId, t.dateKey] }) }),
 );
 
 /** Browser Web Push subscriptions (D232): one row per browser/device the player allowed notifications on. iPhone push (installed web app) goes through Apple's service, Chrome's through Google's; the endpoint says which. */
@@ -1316,6 +1399,19 @@ export const landingFaq = mysqlTable('landing_faq', {
   id: id(),
   questionFa: varchar('question_fa', { length: 200 }).notNull(),
   answerFa: text('answer_fa').notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Player reviews copied by hand from the app stores (with the store name and a link to its listing), shown on the landing site. */
+export const landingReviews = mysqlTable('landing_reviews', {
+  id: id(),
+  authorName: varchar('author_name', { length: 60 }).notNull(),
+  bodyFa: text('body_fa').notNull(),
+  /** 1..5, or null when the store showed no stars. */
+  rating: int('rating'),
+  marketFa: varchar('market_fa', { length: 60 }).notNull(),
+  sourceUrl: varchar('source_url', { length: 300 }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
 });
@@ -1976,6 +2072,32 @@ export const dailyPuzzlePlays = mysqlTable(
     finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey] }) }),
+);
+
+/**
+ * One finished board of one player, for the admin's gameplay stats (docs/logic/admin-stats.md): which puzzle was used up, how it went.
+ * `mode` is solo, the daily puzzle, a 1v1 or a 2v2; for the last two it is the board in play when the match ended. `puzzle_id` has no
+ * foreign key on purpose: a deleted puzzle must not erase the history of the players who had it.
+ */
+export const puzzlePlays = mysqlTable(
+  'puzzle_plays',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    puzzleId: char('puzzle_id', { length: 36 }).notNull(),
+    mode: mysqlEnum('mode', ['solo', 'daily', 'duel', 'team']).notNull(),
+    outcome: mysqlEnum('outcome', ['win', 'loss', 'draw']).notNull(),
+    /** Groups (0-4) this player found themselves; a group the game revealed does not count. */
+    groupsSolved: tinyint('groups_solved').notNull().default(0),
+    mistakes: smallint('mistakes').notNull().default(0),
+    hintsUsed: smallint('hints_used').notNull().default(0),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({
+    byTime: index('puzzle_plays_time_idx').on(t.createdAt),
+    byUser: index('puzzle_plays_user_idx').on(t.userId, t.createdAt),
+    byPuzzle: index('puzzle_plays_puzzle_idx').on(t.puzzleId),
+  }),
 );
 
 /** An S3-compatible place database backups are sent to, with its schedule and retention rule (docs/logic/backups.md). The secret key is stored encrypted. */

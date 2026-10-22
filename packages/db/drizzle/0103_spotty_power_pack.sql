@@ -1,0 +1,1 @@
+ALTER TABLE `puzzle_topics` ADD `icon_key` varchar(40);

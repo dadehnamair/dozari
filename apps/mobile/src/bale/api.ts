@@ -1,5 +1,5 @@
-import { baleLinkCodeSchema, baleLinkStatusSchema, balePrefsSchema } from '@dozari/shared';
-import type { BaleLinkCode, BaleLinkStatus, BalePrefs } from '@dozari/shared';
+import { baleLinkCodeSchema, baleLinkStatusSchema, balePrefsSchema, groupStatsSchema } from '@dozari/shared';
+import type { BaleLinkCode, BaleLinkStatus, BalePrefs, GroupStats } from '@dozari/shared';
 import { session } from '../auth';
 import { callJson } from '../net/http';
 
@@ -19,3 +19,6 @@ export const fetchBalePrefs = (): Promise<BalePrefs> =>
 
 export const saveBalePrefs = (prefs: BalePrefs): Promise<BalePrefs> =>
   session.authed(async (token) => balePrefsSchema.parse(await callJson('/bale/prefs', 'PUT', prefs, token)));
+
+export const fetchGroupStats = (): Promise<GroupStats> =>
+  session.authed(async (token) => groupStatsSchema.parse(await callJson('/me/group-stats', 'GET', undefined, token)));

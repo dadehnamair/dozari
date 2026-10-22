@@ -20,10 +20,10 @@ export const ADMIN_VIEWS2_OPS_JS = String.raw`VIEWS.bots = function (root) {
       });
     });
   }
-  var count = num(10, 1, 50), lmin = num(2, 1, 100), lmax = num(15, 1, 100), smin = num(35, 0, 100), smax = num(80, 0, 100), wmin = num(40, 20, 85), wmax = num(62, 20, 85), tmin = num(3, 1, 60), tmax = num(12, 1, 60), taunt = num(40, 0, 100);
+  var count = num(10, 1, 200), lmin = num(2, 1, 100), lmax = num(15, 1, 100), smin = num(35, 0, 100), smax = num(80, 0, 100), wmin = num(40, 20, 85), wmax = num(62, 20, 85), tmin = num(3, 1, 60), tmax = num(12, 1, 60), taunt = num(40, 0, 100);
   var cities = h('input', { type: 'checkbox' }); cities.checked = true;
   root.appendChild(card('بازیکن‌های ربات', 'حساب‌هایی که بازی خودش بازی می‌کند و از بازیکن واقعی قابل‌تشخیص نیست: اسم، آواتار، شهر، لول، آمار، سکه و مدال طبیعی دارند، با تأخیر انسانی بازی می‌کنند و کل‌کل جواب می‌دهند. بازیکنی که چند ثانیه در صف مانده با یکی‌شان جفت می‌شود (تنظیمات «ربات» در بخش تنظیمات).', [list]));
-  root.appendChild(card('ساخت گروهی', 'هر بار حداکثر ۵۰ ربات؛ اسم‌ها تکراری نیستند و فهرست اسم‌ها محدود است. مهارت یعنی چند درصد وقت‌ها گروه درست را پیدا می‌کند (هیچ‌وقت بیش از ۹۰٪).', [
+  root.appendChild(card('ساخت گروهی', 'هر بار حداکثر ۲۰۰ ربات؛ اسم‌ها تکراری نیستند و فهرست اسم‌ها محدود است. مهارت یعنی چند درصد وقت‌ها گروه درست را پیدا می‌کند (هیچ‌وقت بیش از ۹۰٪).', [
     h('div', { class: 'toolbar' }, [field('تعداد', count), field('لول از', lmin), field('تا', lmax), field('مهارت از', smin), field('تا', smax)]),
     h('div', { class: 'toolbar' }, [field('درصد برد از', wmin), field('تا', wmax), field('فکر کردن از (ثانیه)', tmin), field('تا', tmax), field('جواب به کل‌کل ٪', taunt)]),
     h('div', { class: 'toolbar' }, [h('label', {}, [cities, ' شهر تصادفی هم بدهم']), h('button', { class: 'btn primary', text: 'بساز', onclick: function () {

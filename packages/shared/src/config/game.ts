@@ -39,6 +39,9 @@ export const PRICE_GUESS_ROUND_POINTS = 1;
 /** Competitive match (docs/logic/game-rules.md §Competitive). Proposed defaults, to be playtested. */
 export const TURN_SECONDS = 45;
 
+/** Between two boards of a multi-board match nobody can move and the turn clock waits this long, while the clients show «دور N» with a countdown. */
+export const BOARD_PAUSE_SECONDS = 3;
+
 /** Free «nudge» for brand-new players (docs/logic/progression.md): idle this long in solo and two cards of one group light up. */
 export const NUDGE_MAX_LEVEL = 1;
 export const NUDGE_IDLE_SECONDS = 20;

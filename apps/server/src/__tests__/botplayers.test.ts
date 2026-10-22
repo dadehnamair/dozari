@@ -37,10 +37,10 @@ describe('generating bot players', () => {
     expect(new Set((await svc.list()).map((b) => b.nickname)).size).toBe(30);
   });
 
-  it('caps one call at 50, can pause a bot, and reports unknown ids', async () => {
+  it('caps one call at 200, can pause a bot, and reports unknown ids', async () => {
     const store = createMemoryBotPlayerStore();
     const svc = new BotPlayerService(store, async () => xp, mulberry32(1));
-    expect((await svc.generate({ ...opts, count: 500 })).created).toHaveLength(50);
+    expect((await svc.generate({ ...opts, count: 500 })).created).toHaveLength(200);
     const id = (await svc.list())[0]!.userId;
     expect(await svc.update(id, { isActive: false, skill: 10 })).toBe('ok');
     expect((await store.active()).some((b) => b.userId === id)).toBe(false);

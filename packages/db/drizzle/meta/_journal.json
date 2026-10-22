@@ -666,6 +666,90 @@
       "when": 1792009042005,
       "tag": "0094_mute_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "5",
+      "when": 1792232160227,
+      "tag": "0095_admin_stats",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "5",
+      "when": 1792240551489,
+      "tag": "0096_sturdy_omega_red",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "5",
+      "when": 1792243961768,
+      "tag": "0097_motionless_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "5",
+      "when": 1792244139362,
+      "tag": "0098_eager_violations",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "5",
+      "when": 1792246332160,
+      "tag": "0099_uneven_gamma_corps",
+      "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "5",
+      "when": 1792246766483,
+      "tag": "0100_quiet_karma",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "5",
+      "when": 1792503533831,
+      "tag": "0101_jazzy_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "5",
+      "when": 1792503845271,
+      "tag": "0102_aromatic_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "5",
+      "when": 1792504684816,
+      "tag": "0103_spotty_power_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "5",
+      "when": 1792505001995,
+      "tag": "0104_violet_carmella_unuscione",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "5",
+      "when": 1792506836535,
+      "tag": "0105_topic_icons",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "5",
+      "when": 1792614436221,
+      "tag": "0106_lying_energizer",
+      "breakpoints": true
     }
   ]
 }

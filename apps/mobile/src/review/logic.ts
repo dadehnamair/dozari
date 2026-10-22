@@ -52,6 +52,24 @@ export function reviewUrl(rules: ReviewRules, store: Store): string | null {
   return null;
 }
 
+/**
+ * The store's own screen for writing a review, for the missions: Myket opens its comment form (`myket://comment?id=`), Bazaar its app page
+ * (`bazaar://details?id=`, where the rating lives). Null without a package id or for a market with no such link; `reviewUrl` is the web fallback.
+ */
+export function nativeReviewUrl(rules: ReviewRules, store: Store): string | null {
+  const id = rules.packageId.trim();
+  if (!/^[A-Za-z][\w.]*$/.test(id)) return null;
+  if (store === 'myket') return `myket://comment?id=${id}`;
+  if (store === 'bazaar') return `bazaar://details?id=${id}`;
+  return null;
+}
+
+/** The package id of a `bazaar://details?id=…` link, else null. */
+export function bazaarPackageOf(url: string): string | null {
+  const m = /^bazaar:\/\/details\?id=([A-Za-z][\w.]*)$/.exec(url);
+  return m ? m[1]! : null;
+}
+
 /** True when the review dialog should appear now. `store` is the market this build was shipped through (null = none, never ask). */
 export function shouldPromptReview(state: ReviewState, rules: ReviewRules, store: Store | null, now: number): boolean {
   if (!rules.enabled || !store || !rules.stores[store] || state.done) return false;

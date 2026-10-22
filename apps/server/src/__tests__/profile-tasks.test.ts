@@ -9,8 +9,8 @@ describe('missions (D161, D163)', () => {
     const paid: [MissionKey, number][] = [];
     let balance = 100;
     const svc = new ProfileTaskService({
-      facts: async () => ({ gender: false, city: false, phone: false, bale: false, first_win: false, invite_friend: false, follow_instagram: true, follow_channel: true, rate_app: true, ...facts }),
-      coins: async () => ({ gender: 10, city: 20, phone: 50, bale: 30, first_win: 25, invite_friend: 100, follow_instagram: 15, follow_channel: 15, rate_app: 40, ...coins }),
+      facts: async () => ({ gender: false, city: false, phone: false, bale: false, first_win: false, invite_friend: false, follow_instagram: true, follow_channel: true, rate_app: true, rate_myket: true, rate_bazaar: true, ...facts }),
+      coins: async () => ({ gender: 10, city: 20, phone: 50, bale: 30, first_win: 25, invite_friend: 100, follow_instagram: 15, follow_channel: 15, rate_app: 40, rate_myket: 40, rate_bazaar: 40, ...coins }),
       claimedKeys: async () => [...claimed],
       pay: async (_u, key, c) => {
         if (claimed.has(key)) return null;
@@ -28,7 +28,7 @@ describe('missions (D161, D163)', () => {
     const out = profileTasksSchema.parse(await svc.list('u'));
     expect(out.tasks.map((t) => [t.key, t.done, t.claimed, t.coins])).toEqual([
       ['gender', false, false, 10], ['city', true, false, 20], ['phone', false, false, 50], ['bale', false, false, 30],
-      ['first_win', false, false, 25], ['invite_friend', false, false, 100], ['follow_instagram', true, false, 15], ['follow_channel', true, false, 15], ['rate_app', true, false, 40],
+      ['first_win', false, false, 25], ['invite_friend', false, false, 100], ['follow_instagram', true, false, 15], ['follow_channel', true, false, 15], ['rate_app', true, false, 40], ['rate_myket', true, false, 40], ['rate_bazaar', true, false, 40],
     ]);
   });
 

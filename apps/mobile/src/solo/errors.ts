@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 import { fa } from '../i18n/fa';
 import { ApiError } from './api';
+import { isGatewayDown } from '../net/http';
 
 /** Turns a failed request into a user message plus a small technical line (so "can't connect" is diagnosable). */
 export function describeError(err: unknown, baseUrl: string): { message: string; detail: string } {
@@ -10,6 +11,7 @@ export function describeError(err: unknown, baseUrl: string): { message: string;
     if (err.code === 'done') return { message: e.dailyDone, detail: '' };
     if (err.code === 'daily_cap') return { message: e.dailyCap, detail: '' };
     if (err.code === 'unavailable') return { message: e.noPuzzles, detail: '' };
+    if (isGatewayDown(err)) return { message: e.serverDown, detail: String(err.status) };
     return { message: e.server, detail: `${err.status} ${err.code}` };
   }
   if (err instanceof ZodError) return { message: e.badResponse, detail: err.issues[0]?.message ?? '' };
@@ -19,7 +21,7 @@ export function describeError(err: unknown, baseUrl: string): { message: string;
 
 /** Which friendly card fits the failure: no server (sleepy mascot), nothing to play (sad mascot), anything else (shocked mascot). */
 export function errorKind(err: unknown): 'noInternet' | 'noPuzzles' | 'error' {
-  if (err instanceof ApiError) return err.code === 'no_puzzles' || err.code === 'no_products' || err.code === 'unavailable' ? 'noPuzzles' : 'error';
+  if (err instanceof ApiError) return isGatewayDown(err) ? 'noInternet' : err.code === 'no_puzzles' || err.code === 'no_products' || err.code === 'unavailable' ? 'noPuzzles' : 'error';
   if (err instanceof ZodError) return 'error';
   return 'noInternet';
 }

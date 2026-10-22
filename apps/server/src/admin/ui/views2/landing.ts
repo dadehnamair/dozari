@@ -110,6 +110,10 @@ VIEWS.landingcomments = function (root) {
   root.appendChild(card('نظرها', 'نظر تازه همیشه «در انتظار تأیید» است؛ لینک و کلمه‌های ممنوع پیش از ثبت رد می‌شوند.', [which, list]));
   draw();
 };
+VIEWS.landingreviews = function (root) {
+  simpleList(root, { path: '/admin/landing/reviews', key: 'reviews', title: 'authorName', none: 'هنوز نظری وارد نشده', heading: 'نظرات مارکت‌ها', sub: 'نظر را عیناً از صفحه‌ی اپ در مارکت بردارید. «مارکت» مثل «کافه‌بازار»، «لینک» آدرس صفحه‌ی اپ در همان مارکت (با https) و «ستاره» عدد ۱ تا ۵ است؛ هر دو اختیاری‌اند. ستاره‌ها فقط نمایشی‌اند و در داده‌ی ساختاریافته‌ی گوگل نمی‌روند.', addTitle: 'نظر تازه', addSub: 'اسم نمایشی، متن، مارکت و (اختیاری) لینک و ستاره.',
+    edit: [{ k: 'authorName', label: 'اسم نمایشی' }, { k: 'bodyFa', label: 'متن نظر', tag: 'textarea' }, { k: 'marketFa', label: 'مارکت' }, { k: 'sourceUrl', label: 'لینک' }, { k: 'rating', label: 'ستاره (۱ تا ۵)' }] });
+};
 VIEWS.landingfaq = function (root) {
   simpleList(root, { path: '/admin/landing/faq', key: 'faq', title: 'questionFa', none: 'هنوز پرسشی نیست', heading: 'پرسش‌های متداول', sub: 'جواب را با یک جمله‌ی مستقیم شروع کنید؛ هر دو، گوگل و دستیارهای هوش مصنوعی، همین را نقل می‌کنند.', addTitle: 'پرسش تازه', addSub: 'پرسش و پاسخ کوتاه.',
     edit: [{ k: 'questionFa', label: 'پرسش' }, { k: 'answerFa', label: 'پاسخ', tag: 'textarea' }] });

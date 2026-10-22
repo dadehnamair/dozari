@@ -5,6 +5,15 @@ import type { AgeTrack, CatalogProduct, GroupLevel, SoloOfflinePack, HintKind, H
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
 
+/** What the stats log needs to know about a finished solo game. */
+export interface SoloFinish {
+  puzzleId: string;
+  /** Groups the player found; a group the game revealed at the end does not count. */
+  groupsSolved: number;
+  mistakes: number;
+  hintsUsed: number;
+}
+
 /** How many of a player's latest puzzles the next pick avoids. */
 const RECENT_PUZZLES = 30;
 
@@ -55,7 +64,7 @@ export interface SoloServiceOptions {
   /** Where the tunables come from (the admin settings in production); defaults to the shared constants. */
   rules?: () => Promise<SoloRules>;
   /** Called once when a signed-in player's game ends. */
-  onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
+  onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string, detail?: SoloFinish) => void;
   /** The gem-card tunables (admin settings), read when a signed-in game starts; absent = no gem cards. */
   gemCard?: () => Promise<{ percent: number; amount: number }>;
   /** Pays the gems found behind a card; idempotent per `key` (one gem card per game). */
@@ -75,7 +84,7 @@ export class SoloService {
   private readonly now: () => number;
   private readonly newSeed: () => number;
   private readonly loadRules: () => Promise<SoloRules>;
-  private readonly onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
+  private readonly onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string, detail?: SoloFinish) => void;
   private readonly levelOf?: (userId: string) => Promise<number>;
   private readonly loadGemCard?: () => Promise<{ percent: number; amount: number }>;
   private readonly onGem?: (userId: string, amount: number, key: string) => void;
@@ -183,7 +192,7 @@ export class SoloService {
     if (s.state.status !== 'playing' && s.userId && !s.recorded) {
       s.recorded = true;
       try {
-        this.onFinished?.(s.userId, s.state.status === 'won' ? 'win' : 'loss', s.tag);
+        this.onFinished?.(s.userId, s.state.status === 'won' ? 'win' : 'loss', s.tag, { puzzleId: s.puzzle.id, groupsSolved: s.state.solved.filter((g) => !g.revealed).length, mistakes: s.state.mistakes, hintsUsed: s.hints.length });
       } catch {
         /* stats must not break the game */
       }

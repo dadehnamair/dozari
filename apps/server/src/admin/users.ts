@@ -64,7 +64,7 @@ export interface UserDetail extends AdminUserRow {
     inventory: { effect: string; qty: number }[];
     cosmetics: { titleFa: string; slot: string | null; equipped: boolean; source: string; at: number }[];
     /** The app the player used last and where it was first seen (install source); null before the first report. */
-    client: { platform: string; osVersion: string | null; appBuild: number | null; store: string | null; firstStore: string | null; firstBuild: number | null; firstSeenAt: number; updatedAt: number } | null;
+    client: { platform: string; osVersion: string | null; appBuild: number | null; store: string | null; firstStore: string | null; firstBuild: number | null; pwa: boolean; firstSeenAt: number; updatedAt: number } | null;
     purchases: { titleFa: string; priceCoins: number; priceGems: number; at: number }[];
   };
   notes: { id: string; note: string; at: number }[];
@@ -156,7 +156,7 @@ export function createDbUsersAdmin(db: Db): UsersAdmin {
           stats: { xp: st?.xp ?? 0, games: st?.games ?? 0, wins: st?.wins ?? 0, losses: st?.losses ?? 0, draws: st?.draws ?? 0 },
           inventory: inv.map((i) => ({ effect: i.effect, qty: i.qty })),
           cosmetics: cos.map((x) => ({ titleFa: x.t, slot: x.slot, equipped: x.c.equipped, source: x.c.source, at: x.c.acquiredAt.getTime() })),
-          client: cl ? { platform: cl.platform, osVersion: cl.osVersion, appBuild: cl.appBuild, store: cl.store, firstStore: cl.firstStore, firstBuild: cl.firstBuild, firstSeenAt: cl.firstSeenAt.getTime(), updatedAt: cl.updatedAt.getTime() } : null,
+          client: cl ? { platform: cl.platform, osVersion: cl.osVersion, appBuild: cl.appBuild, store: cl.store, firstStore: cl.firstStore, firstBuild: cl.firstBuild, pwa: cl.pwa, firstSeenAt: cl.firstSeenAt.getTime(), updatedAt: cl.updatedAt.getTime() } : null,
           purchases: buys.map((x) => ({ titleFa: x.t ?? '—', priceCoins: x.p.priceCoins, priceGems: x.p.priceGems, at: x.p.createdAt.getTime() })),
         },
         notes: notes.map((n) => ({ id: n.id, note: n.note, at: n.createdAt.getTime() })),

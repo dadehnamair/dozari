@@ -209,7 +209,7 @@ export const sideName = (found: MatchFound | null, side: 0 | 1, joiner: (x: stri
   sidePlayers(found, side).map((p) => p.nickname).reduce((acc, n) => (acc ? joiner(acc, n) : n), '');
 
 /** Seconds left on the turn clock, never negative. */
-export const turnSecondsLeft = (view: MatchView, nowMs: number): number => Math.max(0, Math.ceil((view.turnEndsAt - nowMs) / 1000));
+export const turnSecondsLeft = (view: MatchView, nowMs: number): number => Math.max(0, Math.ceil((view.turnEndsAt - Math.max(nowMs, view.turnStartsAt ?? 0)) / 1000));
 
 /** 'won' | 'lost' | 'draw' from the player's side. */
 export function myOutcome(ended: MatchEnded, you: 0 | 1): 'won' | 'lost' | 'draw' {

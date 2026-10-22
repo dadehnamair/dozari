@@ -88,11 +88,11 @@ describe('multi-board match (2v2)', () => {
   const start3 = () => startTeamMatch(boards, [['a1', 'a2'], ['b1', 'b2']], mulberry32(1), 1000, 0);
   const capt = (s: MatchState) => s.captain[s.turn];
   /** The side on turn solves the first three groups of the board in play. */
-  const solveBoard = (s: MatchState, tag: string) => {
+  const solveBoard = (s: MatchState, tag: string, now = 2000) => {
     let st = s;
     const events: MatchEvent[] = [];
     for (let level = 0; level < 3; level++) {
-      const r = ok(st, { t: 'submit', by: capt(st)!, itemIds: ids(tag, level) });
+      const r = ok(st, { t: 'submit', by: capt(st)!, itemIds: ids(tag, level) }, now);
       st = r.state;
       events.push(...r.events);
     }
@@ -113,10 +113,10 @@ describe('multi-board match (2v2)', () => {
     expect(s.scores[0]).toBeGreaterThan(0);
     expect(s.remaining.every((id) => id.startsWith('b'))).toBe(true);
     const before = s.scores[1];
-    s = solveBoard(s, 'b').state;
+    s = solveBoard(s, 'b', 6000).state;
     expect([s.round, s.turn]).toEqual([2, 0]);
     expect(s.scores[1]).toBeGreaterThan(before);
-    const last = solveBoard(s, 'c');
+    const last = solveBoard(s, 'c', 12000);
     expect(last.state.status).toBe('finished');
     expect(last.state.result?.reason).toBe('solved');
     expect(last.state.solved).toHaveLength(4);
@@ -128,11 +128,19 @@ describe('multi-board match (2v2)', () => {
     const first = ok(s, { t: 'submit', by: capt(s)!, itemIds: ids('a', 0) });
     expect(first.events.find((e) => e.t === 'group_solved')).toMatchObject({ firstBlood: true });
     s = solveBoard(start3(), 'a').state;
-    const second = ok(s, { t: 'submit', by: capt(s)!, itemIds: ids('b', 0) });
+    const second = ok(s, { t: 'submit', by: capt(s)!, itemIds: ids('b', 0) }, 6000);
     expect(second.events.find((e) => e.t === 'group_solved')).toMatchObject({ firstBlood: false });
     const gone = ok(ok(s, { t: 'leave', by: 'a1' }).state, { t: 'leave', by: 'a2' });
     expect(gone.state.status).toBe('finished');
     expect(gone.state.result).toMatchObject({ winner: 1, reason: 'abandon' });
+  });
+
+  it('the next board opens after a pause: moves are refused and the clock starts only when it is over', () => {
+    const s = solveBoard(start3(), 'a').state; // board 1 ended at now = 2000
+    expect([s.pausedUntil, s.turnStartedAt]).toEqual([5000, 5000]);
+    expect(applyCommand(s, { t: 'submit', by: capt(s)!, itemIds: ids('b', 0) }, { now: 4999 })).toEqual({ error: 'NOT_YOUR_TURN' });
+    expect('error' in applyCommand(s, { t: 'submit', by: capt(s)!, itemIds: ids('b', 0) }, { now: 5000 })).toBe(false);
+    expect(matchClientView(s, 'a1')!.turnStartsAt).toBe(5000);
   });
 
   it('a board where both sides lock out moves on; the client view shows the round, never the next board', () => {

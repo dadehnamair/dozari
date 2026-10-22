@@ -16,11 +16,16 @@ class DozariMessagingService : FirebaseMessagingService() {
     if (Notifier.inForeground(this)) return
     val d = message.data
     if (IrnotiBridge.isIrnotiMessage(d)) {
+      // IRNoti carries the server's tag inside its `extra` JSON ({"tag":"friend_request"}).
+      val tag = try { JSONObject(d["extra"] ?: "{}").optString("tag") } catch (e: Exception) { "" }
+      if (tag.isNotEmpty()) Notifier.notePush(this, tag)
       if (IrnotiBridge.ensure(this)) IrnotiBridge.handleMessage(this, d)
       return
     }
     val body = d["body"] ?: return
-    Notifier.show(this, d["tag"] ?: "dozari", d["title"] ?: "دوزاری", body)
+    val tag = d["tag"] ?: "dozari"
+    Notifier.notePush(this, tag)
+    Notifier.show(this, tag, d["title"] ?: "دوزاری", body)
   }
 
   override fun onNewToken(token: String) {

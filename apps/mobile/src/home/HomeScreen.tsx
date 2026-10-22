@@ -1,7 +1,7 @@
 import { FadingSlogan } from './FadingSlogan';
 import { Attention } from '../components/Attention';
-import { useEffect, useMemo, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { GradientFill } from '../components/GradientFill';
 import { useTheme } from '../theme/themeStore';
 import { SceneBackground } from '../components/SceneBackground';
@@ -12,7 +12,10 @@ import { LeaderboardPage } from '../social/LeaderboardPage';
 import { CityHub } from '../hub/CityHub';
 import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
-import { fetchFriends } from '../social/api';
+import { fetchFriends, fetchPlayer } from '../social/api';
+import { DmSheet } from '../chat/DmSheet';
+import { linkOfNotice, parseNoticeLink } from '../notices/deepLink';
+import type { NoticeLink } from '../notices/deepLink';
 import { connectNotices } from '../notices/connectNotices';
 import { showWebNotice, syncWebPush } from '../notices/webNotify';
 import { startBackgroundNotify } from '../notices/backgroundNotify';
@@ -27,6 +30,8 @@ import { heroOf } from '../social/heroFor';
 import { setLookGender } from '../theme/look';
 import { ReviewSheet } from '../review/ReviewSheet';
 import { useReviewPrompt } from '../review/useReviewPrompt';
+import { nativeReviewUrl, parseReviewRules, reviewUrl } from '../review/logic';
+import { APP_STORE } from '../config/build';
 import { OPEN_CONFIG } from '../config/gate';
 import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
@@ -84,7 +89,10 @@ interface Tile {
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
+/** The launch link (a tap on a push that started the app) is handled once per app launch, not on every return to Home. */
+let initialLinkHandled = false;
+
+export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { /** A shared private table link: open the table sheet on this code once. */ openTableCode?: string; onTableOpened?: () => void; onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
   const adult = useTheme() === 'adult';
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
@@ -104,6 +112,14 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
   const turn = useTournamentTurn(features.tournament && myTrack?.rules?.tournaments !== false, onDuelResume);
   const [tableOpen, setTableOpen] = useState(false);
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
+  // A shared table link (docs/logic/group-game.md §Table card): open the table straight on its code, once.
+  useEffect(() => {
+    if (!openTableCode) return;
+    onTableOpened?.();
+    if (!features.tables) return;
+    setTableCode(openTableCode);
+    setTableOpen(true);
+  }, [openTableCode]);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   /** The explainer page of the 💎 or 🔥 counter. */
@@ -145,12 +161,37 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
     else if (nudge.action === 'settings') setSettingsOpen(true);
     else setBaleOpen(true);
   };
+  // A tappable toast (private message, table invite): the link belongs to that exact text, so a later toast never inherits it.
+  const [toastLink, setToastLink] = useState<{ text: string; link: NoticeLink } | null>(null);
+  const [dmFriend, setDmFriend] = useState<{ id: string; nickname: string; avatarKey: string } | null>(null);
+  const inbox = useInbox();
+  const inboxReloadRef = inbox.reload;
+  /** What a tap on a push, or on the in-app toast, opens: the private chat, the friends page, the table, the inbox. */
+  const openLink = useCallback((link: NoticeLink) => {
+    if (link.kind === 'dm') void fetchPlayer(link.id).then((p) => setDmFriend({ id: link.id, nickname: p.nickname, avatarKey: p.avatarKey }), () => (setProfileStart('friends'), setProfileOpen(true)));
+    else if (link.kind === 'friends') void [setProfileStart('friends'), setProfileOpen(true)];
+    else if (link.kind === 'table') void [setTableCode(link.code), setTableOpen(true)];
+    else void [inboxReloadRef(), setInboxOpen(true)];
+  }, [inboxReloadRef]);
+  const toastWithLink = (text: string, link: NoticeLink | null) => (setToastLink(link ? { text, link } : null), setNudgeToast(text));
   useEffect(() => {
     if (!nudgeToast) return;
-    const timer = setTimeout(() => setNudgeToast(null), 3000);
+    const timer = setTimeout(() => setNudgeToast(null), toastLink?.text === nudgeToast ? 8000 : 3000);
     return () => clearTimeout(timer);
-  }, [nudgeToast]);
-  const inbox = useInbox();
+  }, [nudgeToast, toastLink]);
+  // A tap on a push opens the app with `dozari://open/…`: cold start (initial URL, handled once per launch) or while it runs.
+  useEffect(() => {
+    const handle = (url: string | null) => {
+      const link = parseNoticeLink(url);
+      if (link) openLink(link);
+    };
+    if (!initialLinkHandled) {
+      initialLinkHandled = true;
+      void Linking.getInitialURL().then(handle, () => undefined);
+    }
+    const sub = Linking.addEventListener('url', (e) => handle(e.url));
+    return () => sub.remove();
+  }, [openLink]);
   useEffect(() => {
     void startBackgroundNotify();
     void syncWebPush();
@@ -164,17 +205,19 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
       showWebNotice(n);
       if (n.kind === 'inbox') return inboxReload();
       // Table news arrives as a short line from the guide (the table sheet itself polls for the details).
-      if (n.kind === 'dm') return setNudgeToast(fa.home.dm(n.from ?? ''));
-      if (n.kind === 'table_invite') return setNudgeToast(fa.home.tableInvite(n.from ?? ''));
+      if (n.kind === 'dm') return toastWithLink(fa.home.dm(n.from ?? ''), linkOfNotice(n));
+      if (n.kind === 'table_invite') return toastWithLink(fa.home.tableInvite(n.from ?? ''), linkOfNotice(n));
       if (n.kind === 'table_request') return setNudgeToast(fa.home.tableRequest(n.from ?? ''));
       if (n.kind === 'table_answer') return setNudgeToast(n.accepted ? fa.tables.openList.accepted : fa.tables.openList.declined);
       setFriendNotice((cur) => ({ from: n.from, count: (cur?.count ?? 0) + 1 }));
     });
   }, [features.friends, inboxReload]);
   const review = useReviewPrompt(settings);
+  const reviewRules = parseReviewRules(settings);
   const text = (v: unknown): string | null => (typeof v === 'string' && /^https?:\/\//i.test(v) ? v : null);
   const missionAvail: MissionAvailability = {
-    link: (k) => (k === 'follow_instagram' ? text(settings['link.instagram']) : k === 'follow_channel' ? text(settings['link.channel']) : k === 'rate_app' ? review.url ?? null : null),
+    link: (k) => (k === 'follow_instagram' ? text(settings['link.instagram']) : k === 'follow_channel' ? text(settings['link.channel']) : k === 'rate_app' ? (APP_STORE === 'myket' || APP_STORE === 'bazaar' ? null : review.url ?? null) : k === 'rate_myket' ? (APP_STORE === 'myket' ? nativeReviewUrl(reviewRules, 'myket') : null) : k === 'rate_bazaar' ? (APP_STORE === 'bazaar' ? nativeReviewUrl(reviewRules, 'bazaar') : null) : null),
+    fallback: (k) => (k === 'rate_myket' ? reviewUrl(reviewRules, 'myket') : k === 'rate_bazaar' ? reviewUrl(reviewRules, 'bazaar') : null),
     feature: (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true),
   };
   const missionsReady = missionRows(profileTasks, missionAvail, new Set()).filter((r) => r.state === 'claim').length;
@@ -292,7 +335,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
             {tip !== null && tips[tip] ? (
               <GuideBubble who={heroOf(gender, avatarKey)} text={tips[tip].text} />
             ) : nudgeToast ? (
-              <GuideBubble who={heroOf(gender, avatarKey)} text={nudgeToast} />
+              <GuideBubble who={heroOf(gender, avatarKey)} text={nudgeToast} onPress={toastLink?.text === nudgeToast ? () => (setNudgeToast(null), openLink(toastLink.link)) : undefined} />
             ) : missionsReady > 0 ? (
               <GuideBubble who={heroOf(gender, avatarKey)} text={fa.home.missionNudge(missionsReady)} onPress={() => setSettingsOpen(true)} />
             ) : nudge ? (
@@ -352,6 +395,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} invite={sponsorInvite} /> : null}
+      {dmFriend ? <DmSheet friend={dmFriend} onClose={() => setDmFriend(null)} onJoinTable={(code) => (setDmFriend(null), setTableCode(code), setTableOpen(true))} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
       {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {treasuryOpen ? <TreasuryPage onClose={() => (setTreasuryOpen(false), daily.reload())} /> : null}

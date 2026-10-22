@@ -1,5 +1,5 @@
 import { itemSvg } from '@dozari/shared';
-import type { CommentStatus, CommentTarget, LandingStore, NewCast, NewFaq, NewPost, PostRow, SiteStats } from './store.js';
+import type { CommentStatus, CommentTarget, LandingStore, NewCast, NewFaq, NewPost, NewReview, PostRow, SiteStats } from './store.js';
 
 /** A URL slug from a Persian or Latin title: letters and digits kept, spaces and `_` → `-`, everything else dropped, lower-cased. */
 export function slugify(title: string): string {
@@ -166,5 +166,12 @@ export class LandingService {
     publicList: () => this.store.faq({ includeHidden: false }),
     add: (f: NewFaq) => this.store.addFaq(f),
     update: (id: string, patch: Partial<NewFaq & { sortOrder: number }>) => this.store.updateFaq(id, patch),
+  };
+
+  reviews = {
+    list: () => this.store.reviews({ includeHidden: true }),
+    publicList: () => this.store.reviews({ includeHidden: false }),
+    add: (r: NewReview) => this.store.addReview(r),
+    update: (id: string, patch: Partial<NewReview & { sortOrder: number }>) => this.store.updateReview(id, patch),
   };
 }

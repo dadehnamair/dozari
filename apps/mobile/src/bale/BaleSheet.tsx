@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { MUTABLE_NOTIFY_KINDS } from '@dozari/shared';
-import type { BaleLinkCode, BaleLinkStatus, MutableNotifyKind } from '@dozari/shared';
+import { MUTABLE_NOTIFY_KINDS, toPersianDigits as d } from '@dozari/shared';
+import type { BaleLinkCode, BaleLinkStatus, GroupStats, MutableNotifyKind } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { SheetClose } from '../components/SheetClose';
+import { SheetBody } from '../components/SheetBody';
 import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
 import { phoneErrorText } from '../phone/errors';
 import { PhoneStep } from '../phone/PhoneStep';
-import { fetchBaleLink, fetchBalePrefs, requestBaleCode, saveBalePrefs, unlinkBale } from './api';
+import { fetchBaleLink, fetchBalePrefs, fetchGroupStats, requestBaleCode, saveBalePrefs, unlinkBale } from './api';
 import { enableWebNotify, webNotifyState } from '../notices/webNotify';
 import type { WebNotifyState } from '../notices/webNotify';
 import { useTheme } from '../theme/themeStore';
@@ -19,7 +20,7 @@ import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 
-/** Bottom sheet of the Bale link: get a one-time code, send it to the bot, see "linked", unlink. */
+/** Bottom sheet of the Telegram / Bale link (one link per player; each messenger has its own block): get a one-time code, send it to the bot, see "linked", unlink. */
 export function BaleSheet({ onClose }: { onClose: () => void }) {
   useHardwareBack(onClose);
   const [status, setStatus] = useState<BaleLinkStatus | null>(null);
@@ -31,11 +32,13 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
   const [phoneNote, setPhoneNote] = useState<string | null>(null);
 
   const [muted, setMuted] = useState<MutableNotifyKind[]>([]);
+  const [group, setGroup] = useState<GroupStats | null>(null);
   const [web, setWeb] = useState<WebNotifyState>(webNotifyState);
 
   useEffect(() => {
     fetchBaleLink().then(setStatus, () => setFailed(true));
     fetchBalePrefs().then((p) => setMuted(p.muted), () => undefined);
+    fetchGroupStats().then(setGroup, () => undefined);
   }, []);
 
   const toggle = (k: MutableNotifyKind) => {
@@ -64,9 +67,25 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.bale.close}>
       <Pressable style={[styles.sheet, adult ? styles.sheetAdult : null]} onPress={() => undefined}>
         <SheetClose onPress={onClose} label={fa.bale.close} />
+        <SheetBody>
         <Text style={[styles.title, adult ? styles.textAdult : null]}>{fa.bale.title}</Text>
         <GuideBubble who="mirza" text={fa.bale.intro} />
-        <PhoneStep />
+        {group ? (
+          <View accessibilityLabel={fa.bale.groupTitle}>
+            <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.groupTitle}</Text>
+            {group.groupCount === 0 ? (
+              <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.groupEmpty}</Text>
+            ) : (
+              <>
+                <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.groupPoints(d(group.points), d(group.groups), d(group.groupCount))}</Text>
+                <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.groupWeek(d(group.weekPoints))}</Text>
+                <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.groupToday(d(group.today.coins), d(group.today.coinsCap), d(group.today.xp), d(group.today.xpCap))}</Text>
+                <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.groupTotal(d(group.totalCoins), d(group.totalXp))}</Text>
+              </>
+            )}
+          </View>
+        ) : null}
+        <PhoneStep hideWhenVerified />
         {phoneNote ? <Text style={[styles.text, adult ? styles.textAdult : null]}>{phoneNote}</Text> : null}
         {failed ? <Text style={[styles.text, adult ? styles.textAdult : null]}>{why ?? fa.bale.error}</Text> : null}
         {status && !status.configured ? <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.notConfigured}</Text> : null}
@@ -85,14 +104,22 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
         {status?.configured && !status.linked ? (
           code ? (
             <View style={styles.codeBox}>
-              <Text style={[styles.text, adult ? styles.textAdult : null]}>
-                {fa.bale.sendTo}
-                {code.botUsername ? ` (@${code.botUsername})` : ''}
-              </Text>
+              <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.sendTo}</Text>
               <Text selectable style={styles.code}>
                 {code.code}
               </Text>
-              {code.botUsername ? <CandyButton label={fa.bale.openBot} color={colors.candy.lime} onPress={() => void Linking.openURL(`https://ble.ir/${code.botUsername}?start=${code.code}`).catch(() => setFailed(true))} /> : null}
+              {code.telegramBotUsername ? (
+                <View style={styles.platform}>
+                  <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.telegramHeading} (@{code.telegramBotUsername})</Text>
+                  <CandyButton label={fa.bale.openTelegramBot} color={colors.candy.sky} onPress={() => void Linking.openURL(`https://t.me/${code.telegramBotUsername}?start=${code.code}`).catch(() => setFailed(true))} />
+                </View>
+              ) : null}
+              {code.botUsername ? (
+                <View style={styles.platform}>
+                  <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.baleHeading} (@{code.botUsername})</Text>
+                  <CandyButton label={fa.bale.openBot} color={colors.candy.lime} onPress={() => void Linking.openURL(`https://ble.ir/${code.botUsername}?start=${code.code}`).catch(() => setFailed(true))} />
+                </View>
+              ) : null}
               <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.expires}</Text>
             </View>
           ) : (
@@ -109,6 +136,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
             <CandyButton label={fa.webNotify.enable} color={colors.candy.sky} onPress={() => void enableWebNotify().then(setWeb)} />
           )
         ) : null}
+        </SheetBody>
       </Pressable>
       {dialog}
     </Pressable>
@@ -117,13 +145,14 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 360, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 10, alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 360, maxHeight: '90%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 10, alignItems: 'center' },
   sheetAdult: { backgroundColor: '#17100C', borderColor: '#E8B64A' },
   textAdult: { color: '#FFE9A8' },
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },
   text: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'center' },
   small: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.7 },
   pref: { paddingVertical: 4, alignSelf: 'stretch' },
+  platform: { alignItems: 'center', gap: 6, alignSelf: 'stretch' },
   codeBox: { alignItems: 'center', gap: 6 },
   code: { fontFamily: fonts.display, fontSize: 36, letterSpacing: 4, color: INK, backgroundColor: '#FFC93C', borderWidth: 3, borderColor: INK, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 4, overflow: 'hidden' },
 });

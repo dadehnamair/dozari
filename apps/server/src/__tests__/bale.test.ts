@@ -48,6 +48,21 @@ describe('NotifyService', () => {
     expect(store.outbox.map((o) => o.kind)).toEqual(['security', 'daily_ready']);
   });
 
+  it('pushes match results to the app even without Bale, unless switched off; other kinds are left to their own route', async () => {
+    const { svc } = setup();
+    const pushed: string[] = [];
+    svc.appPush = async (id, kind, text) => void pushed.push(`${id}:${kind}:${text}`);
+    expect(await svc.notify('u9', 'match_result', 'بردی')).toBe(false);
+    expect(await svc.notify('u9', 'friend_request', 'x')).toBe(false);
+    expect(await svc.notify('u9', 'security', 'کد')).toBe(false);
+    expect(pushed).toEqual(['u9:match_result:بردی']);
+    const { code } = await svc.linkCode('u9');
+    await svc.handleUpdate(msg(777, code));
+    await svc.setPrefs('u9', ['match_result']);
+    await svc.notify('u9', 'match_result', 'باختی');
+    expect(pushed).toHaveLength(1);
+  });
+
   it('links a chat with the one-time code and replies in Persian', async () => {
     const { svc, bale, store } = setup();
     const { code } = await svc.linkCode('u1');
@@ -111,6 +126,19 @@ describe('NotifyService', () => {
     bale.setFail(true);
     for (let i = 0; i < 6; i++) await svc.flush();
     expect(await store.stats()).toMatchObject({ pending: 0, failed: 1 });
+  });
+
+  it('answers stray chatter with the help text at most once per 10 minutes; /help always answers', async () => {
+    const { svc, tick, bale } = setup();
+    await svc.handleUpdate(msg(5, 'سلام'));
+    await svc.handleUpdate(msg(5, 'چطوری؟', 2));
+    await svc.flush();
+    expect(bale.sent).toHaveLength(1);
+    await svc.handleUpdate(msg(5, '/help', 3));
+    expect(bale.sent).toHaveLength(2);
+    tick(10 * 60_000 + 1);
+    await svc.handleUpdate(msg(5, 'باز هم', 4));
+    expect(bale.sent).toHaveLength(3);
   });
 
   it('announces a ready daily reward once per claim', async () => {
@@ -193,7 +221,7 @@ describe('bale routes', () => {
     const h = { authorization: `Bearer ${await login()}` };
     const res = await app.inject({ method: 'POST', url: '/bale/link-code', headers: h });
     expect(res.json()).toMatchObject({ code: 'QWE789', botUsername: 'dozari_bot' });
-    expect((await app.inject({ method: 'GET', url: '/bale/link', headers: h })).json()).toEqual({ configured: true, linked: false, botUsername: 'dozari_bot' });
+    expect((await app.inject({ method: 'GET', url: '/bale/link', headers: h })).json()).toEqual({ configured: true, linked: false, botUsername: 'dozari_bot', telegramBotUsername: null });
     await service.handleUpdate(msg(42, 'QWE789'));
     expect((await app.inject({ method: 'GET', url: '/bale/link', headers: h })).json().linked).toBe(true);
     expect((await app.inject({ method: 'DELETE', url: '/bale/link', headers: h })).statusCode).toBe(200);

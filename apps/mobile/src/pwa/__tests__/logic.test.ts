@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { INSTALL_SNOOZE_MS, installBannerDue, installModeOf, isIosAgent, launchOf } from '../logic';
+import { INSTALL_SNOOZE_MS, installBannerDue, installModeOf, isIosAgent, inviteLaunchOf, launchOf, tableLaunchOf } from '../logic';
 
 describe('installModeOf', () => {
   const base = { web: true, standalone: false, hasPrompt: false, ios: false };
@@ -27,6 +27,29 @@ describe('launchOf', () => {
     expect(launchOf('?source=pwa&table=AB12')).toEqual({ target: null, rest: '?table=AB12' });
   });
   it('ignores unknown targets', () => expect(launchOf('?go=admin').target).toBeNull());
+});
+
+describe('tableLaunchOf', () => {
+  it('reads a valid shared table code and strips the launch parameters', () => {
+    expect(tableLaunchOf('?go=table&code=AB2CD')).toEqual({ code: 'AB2CD', rest: '' });
+    expect(tableLaunchOf('?go=table&code=ab2cd&x=1')).toEqual({ code: 'AB2CD', rest: '?x=1' });
+  });
+  it('refuses a malformed code and leaves other links alone', () => {
+    expect(tableLaunchOf('?go=table&code=AB1CD').code).toBeNull(); // 1 is not in the alphabet
+    expect(tableLaunchOf('?go=table&code=ABC').code).toBeNull();
+    expect(tableLaunchOf('?go=daily')).toEqual({ code: null, rest: '?go=daily' });
+  });
+});
+
+describe('inviteLaunchOf', () => {
+  it('reads a friend\'s public ID, uppercases it and strips the launch parameters', () => {
+    expect(inviteLaunchOf('?go=invite&code=ab2cd3e')).toEqual({ handle: 'AB2CD3E', rest: '' });
+    expect(inviteLaunchOf('?go=invite&code=AB2CD3E&x=1')).toEqual({ handle: 'AB2CD3E', rest: '?x=1' });
+  });
+  it('refuses a malformed ID and leaves other links alone', () => {
+    expect(inviteLaunchOf('?go=invite&code=a/b').handle).toBeNull();
+    expect(inviteLaunchOf('?go=table&code=AB2CD')).toEqual({ handle: null, rest: '?go=table&code=AB2CD' });
+  });
 });
 
 describe('installBannerDue', () => {

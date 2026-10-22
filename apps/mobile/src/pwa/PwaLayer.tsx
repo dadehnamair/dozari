@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   ctaText: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
   later: { fontFamily: fonts.bold, fontSize: 11, color: '#7E46D6' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 70, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 360, gap: 10, padding: 16, borderRadius: 24, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift },
+  sheet: { width: '100%', maxWidth: 360, maxHeight: '90%', gap: 10, padding: 16, borderRadius: 24, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift },
   sheetTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.ink, textAlign: 'center' },
   step: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   num: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },

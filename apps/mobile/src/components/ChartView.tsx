@@ -8,9 +8,6 @@ import type { SoloChart, YScale } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { colors } from '../theme/colors';
 
-/** Persian text inside the chart's left-to-right container: isolate it so words and digits keep their reading order. */
-const rtl = (text: string): string => `\u2067${text}\u2069`;
-
 const DEFAULT_HEIGHT = 230;
 const PAD = { left: 58, right: 12, top: 12, bottom: 26 };
 
@@ -39,9 +36,6 @@ export function ChartView({ group, scale, height: HEIGHT = DEFAULT_HEIGHT }: { g
             {yTicks(data.yDomain, scale).map((t) => (
               <Line key={`y${t}`} x1={PAD.left} x2={width - PAD.right} y1={Y(t)} y2={Y(t)} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
             ))}
-            {yTicks(data.yDomain, scale).map((t) => (
-              <SvgText key={`yl${t}`} x={PAD.left - 6} y={Y(t) + 4} fill={colors.cream} fontSize={10} textAnchor="end">{rtl(compactTomanLabel(t))}</SvgText>
-            ))}
             {xTicks(data.years).map((y) => (
               <SvgText key={`xl${y}`} x={X(y)} y={HEIGHT - 8} fill={colors.cream} fontSize={10} textAnchor="middle">{formatShortJalaliYear(y)}</SvgText>
             ))}
@@ -58,6 +52,12 @@ export function ChartView({ group, scale, height: HEIGHT = DEFAULT_HEIGHT }: { g
         ) : (
           <Text style={styles.empty}>{data.years ? '' : fa.solo.chart.noData}</Text>
         )}
+        {/* Y labels are native Text, not SvgText: react-native-svg doesn't shape Persian letters (the "میلیون" label came out garbled on Android). */}
+        {data.years && data.yDomain && width > 0
+          ? yTicks(data.yDomain, scale).map((t) => (
+              <Text key={`yl${t}`} numberOfLines={1} style={[styles.yLabel, { top: Y(t) - 9 }]}>{compactTomanLabel(t)}</Text>
+            ))
+          : null}
       </View>
       <View style={styles.legend}>
         {data.series.map((s) => (
@@ -80,6 +80,7 @@ const LTR: ViewStyle = { direction: 'ltr' };
 const styles = StyleSheet.create({
   wrap: { width: '100%', gap: 8 },
   chart: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, justifyContent: 'center' },
+  yLabel: { position: 'absolute', left: 0, width: PAD.left - 6, height: 18, lineHeight: 18, textAlign: 'right', writingDirection: 'rtl', fontFamily: 'Vazirmatn_400Regular', fontSize: 10, color: colors.cream },
   empty: { fontFamily: 'Vazirmatn_400Regular', color: colors.cream, textAlign: 'center' },
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },

@@ -4,6 +4,7 @@ import { Character } from '../components/Character';
 import { Icon } from '../components/Icon';
 import { Item } from '../components/Item';
 import { fa } from '../i18n/fa';
+import { GroupPip } from './GroupPips';
 import { fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
 import { Plate } from './adultKit';
@@ -54,7 +55,7 @@ function SideCard({ side, mine, onChat, chatOpen, chatCooling }: { side: Side; m
             {side.level ? <View style={styles.lv}><Text style={styles.lvText}>{toPersianDigits(String(side.level))}</Text></View> : null}
           </View>
           <View style={[styles.pips, mine ? null : styles.pipsRival]}>
-            {[0, 1, 2, 3].map((i) => <View key={i} style={[styles.pip, { backgroundColor: i < side.groups ? tone : '#2A1E16' }]} />)}
+            {[0, 1, 2, 3].map((i) => <GroupPip key={i} lit={i < side.groups} style={[styles.pip, { backgroundColor: i < side.groups ? tone : '#2A1E16' }]} />)}
           </View>
         </View>
         {side.frozen ? <View style={styles.ice} pointerEvents="none" /> : null}

@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { LiveNotice } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
-import { pushTextOf } from './webpush.js';
+import { deepLinkOf, pushTextOf } from './webpush.js';
 import type { PushPayload } from './webpush.js';
 
 export interface IrnotiPushConfig {
@@ -26,7 +26,7 @@ export class IrnotiPushService {
     /** irnoti answers 200 even when it found no device (`total: 0`), so refusals and empty sends are logged here instead of being silent. */
     private readonly log: (msg: string) => void = (m) => console.warn(m),
   ) {
-    this.base = (cfg.baseUrl ?? 'https://api.irnoti.com').replace(/\/$/, '');
+    this.base = (cfg.baseUrl?.trim() || 'https://api.irnoti.com').replace(/\/$/, '');
   }
 
   /** Resolves true when irnoti accepted the send (it reports per-device outcomes in its own panel). */
@@ -36,7 +36,7 @@ export class IrnotiPushService {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${this.cfg.apiKey}` },
         body: JSON.stringify({
-          message: { title: payload.title, body: payload.body, channel: 'dozari', extra: { tag: payload.tag }, ttlSeconds: 3600 },
+          message: { title: payload.title, body: payload.body, ...(payload.deeplink ? { deeplink: payload.deeplink } : {}), channel: 'dozari', extra: { tag: payload.tag }, ttlSeconds: 3600 },
           target: { externalIds: [userId] },
         }),
         signal: AbortSignal.timeout(10_000),
@@ -46,6 +46,7 @@ export class IrnotiPushService {
         return false;
       }
       const out = (await res.json().catch(() => null)) as { total?: number; accepted?: number; failed?: number } | null;
+      if (out?.accepted) this.log(`irnoti push to ${userId} (${payload.tag}): accepted=${out.accepted} total=${out.total ?? '?'}`);
       if (!out?.accepted) this.log(`irnoti push to ${userId} reached no device: total=${out?.total ?? '?'} accepted=${out?.accepted ?? '?'} failed=${out?.failed ?? '?'}`);
       return true;
     } catch (e) {
@@ -56,7 +57,8 @@ export class IrnotiPushService {
 
   async notice(userId: string, n: LiveNotice): Promise<void> {
     const payload = pushTextOf(n);
-    if (payload) await this.notify(userId, payload);
+    const deeplink = deepLinkOf(n);
+    if (payload) await this.notify(userId, deeplink ? { ...payload, deeplink } : payload);
   }
 }
 

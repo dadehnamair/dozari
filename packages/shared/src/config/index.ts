@@ -17,3 +17,4 @@ export * from './botSkill.js';
 export * from './ads.js';
 export * from './topics.js';
 export * from './leave.js';
+export * from './groupgame.js';

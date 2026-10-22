@@ -1,0 +1,1 @@
+ALTER TABLE `bot_group_price_sessions` ADD `question_sessions` int DEFAULT 0 NOT NULL;

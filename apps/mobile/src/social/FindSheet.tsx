@@ -72,9 +72,10 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
   if (open) return <PlayerSheet playerId={open} onClose={() => setOpen(null)} />;
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.find.close}>
-      <Pressable style={[styles.sheet, dark ? dk.sheet : null]} onPress={() => undefined}>
+      <Pressable style={[styles.sheet, dark ? dk.sheet : null, { maxHeight: Math.max(240, winHeight - 48) }]} onPress={() => undefined}>
         {dark ? <GradientFill from="#2A1E16" to="#17100C" /> : null}
         <SheetClose onPress={onClose} label={fa.find.close} />
+        <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
         <Text style={[styles.title, dark ? dk.text : null]}>{fa.find.title}</Text>
         {me ? (
           <>
@@ -116,6 +117,7 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
         {found === null ? <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.find.notFound}</Text> : null}
         {found ? (dark ? <View style={[styles.list, dk.ledger]}><View style={dk.ledgerContent}><PlayerCard p={found} dark last onOpen={() => setOpen(found.id)} onAdd={() => void addFriend(found)} /></View></View> : <PlayerCard p={found} dark={false} last onOpen={() => setOpen(found.id)} onAdd={() => void addFriend(found)} />) : null}
         {note ? <Text style={[styles.hint, styles.bad, dark ? dk.bad : null]}>{note}</Text> : null}
+        </ScrollView>
       </Pressable>
     </Pressable>
   );
@@ -179,6 +181,8 @@ const styles = StyleSheet.create({
   ltr: { writingDirection: 'ltr', textAlign: TEXT_LEFT },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   sheet: { width: '100%', maxWidth: 380, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 8, alignItems: 'center' },
+  body: { alignSelf: 'stretch', flexGrow: 0, flexShrink: 1 },
+  bodyContent: { gap: 8, alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },
   label: { fontFamily: fonts.bold, fontSize: 14, color: INK },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.75, alignSelf: 'flex-start' },

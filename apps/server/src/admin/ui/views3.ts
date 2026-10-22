@@ -12,8 +12,11 @@ VIEWS.users = function (root) {
   trackSel.addEventListener('change', function () { st.track = trackSel.value; store('users.track', st.track); st.offset = 0; pull(); });
   root.appendChild(h('div', { class: 'toolbar' }, [search, filt, h('span', { style: 'flex:1' }), trackSel, sortSel]));
   root.appendChild(out);
+  var pullSeq = 0;
   function pull() {
+    var mine = ++pullSeq;
     api('/admin/users?q=' + encodeURIComponent(st.q) + '&filter=' + st.filter + '&sort=' + st.sort + (st.track ? '&track=' + st.track : '') + '&offset=' + st.offset).then(function (r) {
+      if (mine !== pullSeq) return; // a newer search is already on its way
       clear(out);
       if (r.status === 404) return out.appendChild(empty('مدیریت کاربران روی این سرور فعال نیست'));
       if (!r.ok) return fail(r);
@@ -101,7 +104,7 @@ function userDrawer(id, done) {
       var cl = a.client, PLAT = { android: 'اندروید', ios: 'آی‌اواس', web: 'وب (مرورگر)' }, STORE_FA = { myket: 'مایکت', bazaar: 'بازار', bale: 'بله' };
       b.appendChild(sectionTitle('آخرین دستگاه'));
       b.appendChild(cl ? defs([
-        ['پلتفرم', PLAT[cl.platform] || cl.platform], ['نسخه‌ی سیستم‌عامل', dash(cl.osVersion && h('span', { class: 'ltr', text: cl.osVersion }))],
+        ['پلتفرم', (PLAT[cl.platform] || cl.platform) + (cl.pwa ? ' · نصب‌شده (PWA)' : '')], ['نسخه‌ی سیستم‌عامل', dash(cl.osVersion && h('span', { class: 'ltr', text: cl.osVersion }))],
         ['نسخه‌ی اپ (build)', cl.appBuild ? fa(cl.appBuild) : dash(null)], ['مرجع نصب (بازار فعلی)', cl.store ? STORE_FA[cl.store] || cl.store : (cl.platform === 'web' ? 'وب' : 'نامشخص / مستقیم')],
         ['مرجع اولین نصب', cl.firstStore ? STORE_FA[cl.firstStore] || cl.firstStore : (cl.platform === 'web' ? 'وب' : 'نامشخص / مستقیم') + (cl.firstBuild ? ' · build ' + fa(cl.firstBuild) : '')],
         ['اولین بار دیده شد', ago(cl.firstSeenAt)], ['آخرین گزارش', ago(cl.updatedAt)]
@@ -176,26 +179,35 @@ function userDrawer(id, done) {
 /* ---------------- settings ---------------- */
 var GROUP_FA = { app: 'مدیریت اپ', gameplay: 'بازی', scoring: 'امتیاز', profile: 'پروفایل', economy: 'اقتصاد', chart: 'نمودار', bot: 'ربات محتوا', notify: 'اعلان‌های بله', review: 'نظر در فروشگاه‌ها' };
 VIEWS.settings = function (root) {
-  var group = load('settings.group') || 'app', q = '', rows = [], nav = h('div', { class: 'chips', style: 'margin-bottom:14px' }), box = h('div');
+  var group = load('settings.group') || 'app', q = '', rows = [], edits = {}, nav = h('div', { class: 'chips', style: 'margin-bottom:14px' }), box = h('div');
   var search = searchBox('جستجو در همه‌ی تنظیم‌ها (عنوان، توضیح یا کلید)…', function (v) { q = v.trim().toLowerCase(); draw(); });
   root.appendChild(h('div', { class: 'toolbar' }, [search]));
   root.appendChild(nav); root.appendChild(box);
   function matches(r) { return (r.label + ' ' + (r.hint || '') + ' ' + r.key).toLowerCase().indexOf(q) >= 0; }
   function settingRow(r) {
-    var inp = h('input', { type: r.kind === 'bool' ? 'checkbox' : 'text', dir: r.kind === 'text' ? 'auto' : 'ltr', maxlength: r.kind === 'text' ? r.max : undefined, value: Array.isArray(r.value) ? r.value.join(',') : String(r.value), checked: r.kind === 'bool' ? r.value === 1 : undefined, 'aria-label': r.label });
+    var typed = edits[r.key]; // unsaved edit made before a redraw (saving another row, switching group, searching)
+    var inp = h('input', { type: r.kind === 'bool' ? 'checkbox' : 'text', dir: r.kind === 'text' ? 'auto' : 'ltr', maxlength: r.kind === 'text' ? r.max : undefined, value: typed !== undefined ? String(typed) : Array.isArray(r.value) ? r.value.join(',') : String(r.value), checked: r.kind === 'bool' ? (typed !== undefined ? typed === 1 : r.value === 1) : undefined, 'aria-label': r.label });
+    var row;
+    function save() {
+      var val = r.kind === 'bool' ? (inp.checked ? 1 : 0) : inp.value;
+      api('/admin/settings/' + encodeURIComponent(r.key), { method: 'PUT', body: { value: val } }).then(function (x) { if (!x.ok) return fail(x); delete edits[r.key]; rows = x.body.settings; toast('ذخیره شد'); draw(); });
+    }
+    inp.addEventListener(r.kind === 'bool' ? 'change' : 'input', function () {
+      edits[r.key] = r.kind === 'bool' ? (inp.checked ? 1 : 0) : inp.value;
+      if (row) row.classList.add('dirty');
+    });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing && r.kind !== 'bool') { e.preventDefault(); save(); } });
     var def = Array.isArray(r.default) ? r.default.join(',') : String(r.default) || '(خالی)';
-    return h('div', { class: 'setting' + (r.overridden ? ' changed' : '') }, [
+    row = h('div', { class: 'setting' + (r.overridden ? ' changed' : '') + (typed !== undefined ? ' dirty' : '') }, [
       h('div', {}, [h('div', { class: 'l', text: r.label + (r.unit ? ' (' + r.unit + ')' : '') }), r.hint ? h('div', { class: 'h', text: r.hint }) : null, h('div', { class: 'h ltr', text: r.key + ' · پیش‌فرض ' + def })]),
       inp,
       h('div', { style: 'display:flex;gap:6px;align-items:center' }, [
         r.overridden ? badge('تغییر‌یافته', 'b-warn') : null,
-        h('button', { class: 'btn primary sm', text: 'ذخیره', onclick: function () {
-          var val = r.kind === 'bool' ? (inp.checked ? 1 : 0) : inp.value;
-          api('/admin/settings/' + encodeURIComponent(r.key), { method: 'PUT', body: { value: val } }).then(function (x) { if (!x.ok) return fail(x); rows = x.body.settings; toast('ذخیره شد'); draw(); });
-        } }),
-        r.overridden ? h('button', { class: 'btn sm', text: 'پیش‌فرض', onclick: function () { api('/admin/settings/' + encodeURIComponent(r.key), { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); rows = x.body.settings; toast('به پیش‌فرض برگشت'); draw(); }); } }) : null
+        h('button', { class: 'btn primary sm', text: 'ذخیره', onclick: save }),
+        r.overridden ? h('button', { class: 'btn sm', text: 'پیش‌فرض', onclick: function () { api('/admin/settings/' + encodeURIComponent(r.key), { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); delete edits[r.key]; rows = x.body.settings; toast('به پیش‌فرض برگشت'); draw(); }); } }) : null
       ])
     ]);
+    return row;
   }
   function draw() {
     clear(nav); clear(box);
@@ -281,7 +293,7 @@ VIEWS.lessons = function (root) {
 
 /* ---------------- coin economy health ---------------- */
 VIEWS.economyhealth = function (root) {
-  var REASON_FA = { signup_bonus: 'هدیه‌ی ثبت‌نام', daily_login: 'جایزه‌ی روزانه', match_entry: 'ورودی دوئل', match_payout: 'برد دوئل', trivia_entry: 'ورودی پرسش', trivia_payout: 'برد دوئل پرسشی', trivia_refund: 'بازگشت ورودی پرسش', match_refund: 'بازگشت ورودی', invite_reward: 'پاداش دعوت', ugc_reward: 'پاداش پیشنهاد', admin_adjust: 'تغییر دستی ادمین', purchase: 'خرید سکه', bot_match_subsidy: 'یارانه‌ی ربات', price_guess_wager: 'شرط حدس قیمت', price_guess_payout: 'جایزه‌ی حدس قیمت', shop_purchase: 'خرید از فروشگاه', hint_purchase: 'خرید راهنما', gift_out: 'هدیه‌ی فرستاده', gift_in: 'هدیه‌ی گرفته', loan_out: 'وام داده', loan_in: 'وام گرفته', repay_out: 'بازپرداخت', repay_in: 'دریافت بازپرداخت', daily_puzzle: 'پازل روز', tournament_entry: 'ورودی تورنومنت', tournament_refund: 'بازگشت تورنومنت', tournament_prize: 'جایزه‌ی تورنومنت', match_consolation: 'دلداری باخت', broke_rescue: 'کمک به بی‌سکه', wheel_spin: 'گردونه', level_reward: 'جایزه‌ی لول', profile_task: 'تکمیل پروفایل', birthday_gift: 'هدیه‌ی تولد', keepsake_piece: 'خرید تکه‌ی یادگار', keepsake_upgrade: 'ارتقای یادگار', ad_reward: 'تماشای تبلیغ' };
+  var REASON_FA = { signup_bonus: 'هدیه‌ی ثبت‌نام', daily_login: 'جایزه‌ی روزانه', match_entry: 'ورودی دوئل', match_payout: 'برد دوئل', trivia_entry: 'ورودی پرسش', trivia_payout: 'برد دوئل پرسشی', trivia_refund: 'بازگشت ورودی پرسش', match_refund: 'بازگشت ورودی', invite_reward: 'پاداش دعوت', ugc_reward: 'پاداش پیشنهاد', admin_adjust: 'تغییر دستی ادمین', purchase: 'خرید سکه', bot_match_subsidy: 'یارانه‌ی ربات', price_guess_wager: 'شرط حدس قیمت', price_guess_payout: 'جایزه‌ی حدس قیمت', shop_purchase: 'خرید از فروشگاه', hint_purchase: 'خرید راهنما', gift_out: 'هدیه‌ی فرستاده', gift_in: 'هدیه‌ی گرفته', loan_out: 'وام داده', loan_in: 'وام گرفته', repay_out: 'بازپرداخت', repay_in: 'دریافت بازپرداخت', daily_puzzle: 'پازل روز', tournament_entry: 'ورودی تورنومنت', tournament_refund: 'بازگشت تورنومنت', tournament_prize: 'جایزه‌ی تورنومنت', match_consolation: 'دلداری باخت', broke_rescue: 'کمک به بی‌سکه', wheel_spin: 'گردونه', level_reward: 'جایزه‌ی لول', profile_task: 'تکمیل پروفایل', birthday_gift: 'هدیه‌ی تولد', keepsake_piece: 'خرید تکه‌ی یادگار', keepsake_upgrade: 'ارتقای یادگار', ad_reward: 'تماشای تبلیغ', group_play: 'بازی در گروه' };
   var days = select([['7', '۷ روز گذشته'], ['30', '۳۰ روز گذشته'], ['90', '۹۰ روز گذشته']], '7');
   var body = h('div');
   function draw() {

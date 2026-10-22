@@ -21,8 +21,8 @@ Notifications built so far (switchable in admin settings, group «اعلان‌�
 
 | kind | when | setting |
 |---|---|---|
-| `match_result` | a live duel ends (win / loss / draw with the reason) | `notify.match_result` |
-| `daily_ready` | the daily-reward cooldown of a linked player has passed (once per claim, `bale_links.daily_notified_for`) | `notify.daily_ready` |
+| `match_result` | a live duel ends (win / loss / draw with the reason); **off by default** (D246) | `notify.match_result` |
+| `daily_ready` | come-back nudge: the player has not claimed for `notify.reminder_days` days (default 3; at least the cooldown), once per claim (`bale_links.daily_notified_for`) | `notify.daily_ready` |
 | `broadcast` | admin sends a message to everybody linked | — |
 | `test` / `admin` | admin sends a test to one chat id | — |
 
@@ -82,3 +82,20 @@ through phone login (or the D126 conflict choice). Not verified against Bale's r
 
 Admin settings `feature.telegram_app` (0/1, default 0) and `link.telegram_app` (URL). Only when the switch is on **and** the link is set does
 `/public/landing` carry `telegramApp`, and the landing shows a «تلگرام» tile (play without install, PWA-like). Nothing else of Telegram is built.
+
+## Telegram bot (next to Bale)
+
+Owner request (2026-10-17): the same bot runs on Telegram too, Telegram first in the UI, Bale kept. Set `TELEGRAM_BOT_TOKEN` (+ `TELEGRAM_BOT_USERNAME`, and
+`TELEGRAM_API_BASE` when api.telegram.org is unreachable from the server); each bot is optional.
+
+- One `NotifyService`, one store, one outbox. Telegram chat/user ids are stored with the prefix `tg:` (`TELEGRAM_ID_PREFIX`), so they never collide with Bale ids and the
+  sender (`createMultiClient`) routes by prefix; the prefix is stripped before the Telegram API call and added to every incoming update (`createTelegramClient`).
+- The runner long-polls each configured bot; linking, `/status`, `/stop`, contact signup and phone proof behave exactly as on Bale. A player has one link (Bale or Telegram).
+- `GET /bale/link` and `POST /bale/link-code` also return `telegramBotUsername`; the sheet shows «باز کردن در تلگرام» (`https://t.me/<bot>?start=<code>`) above the Bale button.
+- Mini-app payers: `miniAppUserOf` understands `tg:` ids (Telegram device id space). Wallet payments (invoices) stay Bale-only; Telegram has no rial provider.
+- Not verified against the live Telegram API.
+
+Groups: the bot also plays the daily puzzle in groups, see `docs/logic/group-game.md`.
+- Link sheet (2026-10-17): titled «اتصال به شبکه‌های اجتماعی»; after «گرفتن کد» it shows the code and one separate block per configured messenger (Telegram, Bale), each with its own open-bot button. Still one link per player.
+- Telegram long-poll length is `TELEGRAM_POLL_SECONDS` (default 5, Bale stays 25): through the relay a 25 s poll got `getUpdates 504`.
+- `TELEGRAM_API_BASE` is the bot's IRNoti broker link (`https://events.irnoti.com/<name>/<key>`, token inside): the client calls `<link>/<method>`, not `/bot<token>/<method>` (the old shape got a 302 to irnoti.com). Empty = direct `api.telegram.org/bot<token>/`.

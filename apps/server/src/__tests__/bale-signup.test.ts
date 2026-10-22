@@ -82,3 +82,26 @@ describe('mini-app contact proof (requestContact)', () => {
     expect(await t.phones.holderOf('+989123456789')).toBeNull();
   });
 });
+
+describe('Bale bot /invite', () => {
+  it('gives a linked chat or a mini-app player their personal link, and others a pointer to get an account', async () => {
+    const t = boot();
+    t.notify.inviteLink = async (userId, telegram) => `https://${telegram ? 't.me' : 'ble.ir'}/bot?startapp=i_H${userId}`;
+    await t.notify.handleUpdate(t.text(5, '/invite'));
+    expect(t.sent.at(-1)?.text).toContain('اول باید حساب داشته باشی');
+    await t.notify.handleUpdate(t.contact(5, 5, '09123456789')); // creates u1 and links the chat
+    await t.notify.handleUpdate(t.text(5, '/invite'));
+    expect(t.sent.at(-1)?.text).toContain('https://ble.ir/bot?startapp=i_Hu1');
+    t.notify.miniAppUserOf = async (id) => (id === '7' ? 'u9' : null); // a mini-app player with no linked chat
+    await t.notify.handleUpdate(t.text(7, '/invite'));
+    expect(t.sent.at(-1)?.text).toContain('startapp=i_Hu9');
+  });
+
+  it('says there is no link when the link maker cannot build one', async () => {
+    const t = boot();
+    await t.notify.handleUpdate(t.contact(5, 5, '09123456789'));
+    t.notify.inviteLink = async () => null;
+    await t.notify.handleUpdate(t.text(5, '/invite'));
+    expect(t.sent.at(-1)?.text).toContain('اول باید حساب داشته باشی');
+  });
+});

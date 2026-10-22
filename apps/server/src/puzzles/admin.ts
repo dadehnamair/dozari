@@ -1,3 +1,4 @@
+import { isItemIconKey } from '@dozari/shared';
 import { and, asc, count, desc, eq, inArray, pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, puzzleTagDefs, puzzleTags, puzzleTiers, puzzleTopics, puzzles, sql } from '@dozari/db';
 import { ruleToColumns } from '@dozari/db';
 import type { Db } from '@dozari/db';
@@ -17,6 +18,8 @@ export interface PuzzleAdminRow {
   status: 'draft' | 'approved' | 'retired';
   source: 'generated' | 'curated' | 'ugc';
   createdAt: number;
+  /** When an admin last re-checked it (بازبینی), or null = never reviewed. Does not affect serving. */
+  reviewedAt: number | null;
   /** The puzzle's difficulty tier (admin-defined), or null while unrated. */
   tierId: string | null;
   /** Which age track's pool the puzzle belongs to (D198). */
@@ -31,13 +34,17 @@ export interface TopicRow {
   id: string;
   slug: string;
   nameFa: string;
+  /** Icon of the pack (`ITEMS` key) the app shows for the topic; null = none chosen. */
+  iconKey: string | null;
+  /** Emoji for bot messages. */
+  emoji: string | null;
   sortOrder: number;
   isActive: boolean;
   /** Approved puzzles filed under it (a topic is offered in a match only with enough of them). */
   puzzles: number;
 }
-export type TopicInput = { id?: string; slug: string; nameFa: string; sortOrder: number; isActive: boolean };
-export type SaveTopicResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'duplicate' | 'not_found' };
+export type TopicInput = { id?: string; slug: string; nameFa: string; iconKey?: string | null; emoji?: string | null; sortOrder: number; isActive: boolean };
+export type SaveTopicResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'icon' | 'emoji' | 'duplicate' | 'not_found' };
 
 /** A defined tag (the vocabulary puzzles may be tagged from) with how many puzzles carry it. */
 export interface TagRow {
@@ -54,6 +61,13 @@ export type SaveTagResult = { ok: true; id: string } | { ok: false; error: 'slug
 /** Tags are the slugs of defined tags; blanks and repeats go, the count is capped. */
 export function cleanTags(tags: readonly string[]): string[] {
   return [...new Set(tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length >= 1 && t.length <= 50))].slice(0, PUZZLE_TAGS_MAX);
+}
+
+/** A topic emoji: a few pictographs and nothing else (empty = none); null when the text is not an emoji. */
+export function cleanEmoji(v: string | null | undefined): string | null {
+  const t = (v ?? '').trim();
+  if (t === '') return null;
+  return t.length <= 16 && /^(?:\p{Extended_Pictographic}|\u200d|\ufe0f|\p{Emoji_Modifier}|\p{Regional_Indicator})+$/u.test(t) ? t : null;
 }
 
 /** Slug rule shared by topics and tags. */
@@ -102,6 +116,8 @@ export interface PuzzleAdmin {
   /** Puts a puzzle in a tier (null = unrated). */
   setTier(puzzleId: string, tierId: string | null): Promise<'ok' | 'not_found' | 'unknown_tier'>;
   setStatus(id: string, status: 'approved' | 'retired' | 'draft'): Promise<'ok' | 'not_found'>;
+  /** Stamps the puzzle as reviewed now (re-review overwrites the time), or clears the mark (`reviewed: false`). The puzzle's status and serving are untouched. */
+  markReviewed(id: string, reviewed: boolean, now?: Date): Promise<'ok' | 'not_found'>;
   /** The topics (admin order) with how many approved puzzles each holds. */
   topics(): Promise<TopicRow[]>;
   saveTopic(topic: TopicInput): Promise<SaveTopicResult>;
@@ -175,6 +191,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         status: r.status,
         source: r.source,
         createdAt: r.createdAt.getTime(),
+        reviewedAt: r.reviewedAt?.getTime() ?? null,
         tierId: r.tierId,
         ageTrack: r.ageTrack,
         topicId: r.topicId,
@@ -308,23 +325,27 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
     async topics() {
       const rows = await db.select().from(puzzleTopics).orderBy(asc(puzzleTopics.sortOrder), asc(puzzleTopics.nameFa));
       const counts = await db.select({ topicId: puzzles.topicId, n: count() }).from(puzzles).where(eq(puzzles.status, 'approved')).groupBy(puzzles.topicId);
-      return rows.map((r) => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, sortOrder: r.sortOrder, isActive: r.isActive, puzzles: Number(counts.find((c) => c.topicId === r.id)?.n ?? 0) }));
+      return rows.map((r) => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, iconKey: r.iconKey, emoji: r.emoji, sortOrder: r.sortOrder, isActive: r.isActive, puzzles: Number(counts.find((c) => c.topicId === r.id)?.n ?? 0) }));
     },
     async saveTopic(t) {
       const slug = t.slug.trim().toLowerCase();
       const nameFa = t.nameFa.trim();
       if (!validSlug(slug)) return { ok: false, error: 'slug' };
       if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
+      const iconKey = t.iconKey === undefined ? undefined : t.iconKey && isItemIconKey(t.iconKey) ? t.iconKey : null;
+      if (t.iconKey && iconKey === null) return { ok: false, error: 'icon' };
+      const emoji = t.emoji === undefined ? undefined : cleanEmoji(t.emoji);
+      if (t.emoji && emoji === null) return { ok: false, error: 'emoji' };
       const [clash] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.slug, slug));
       if (clash && clash.id !== t.id) return { ok: false, error: 'duplicate' };
       if (t.id) {
         const [r] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.id, t.id));
         if (!r) return { ok: false, error: 'not_found' };
-        await db.update(puzzleTopics).set({ slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive }).where(eq(puzzleTopics.id, t.id));
+        await db.update(puzzleTopics).set({ slug, nameFa, iconKey, emoji, sortOrder: t.sortOrder, isActive: t.isActive }).where(eq(puzzleTopics.id, t.id));
         return { ok: true, id: t.id };
       }
       const id = uuidv7();
-      await db.insert(puzzleTopics).values({ id, slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive });
+      await db.insert(puzzleTopics).values({ id, slug, nameFa, iconKey: iconKey ?? null, emoji: emoji ?? null, sortOrder: t.sortOrder, isActive: t.isActive });
       return { ok: true, id };
     },
     async setTopic(puzzleId, topicId, tags) {
@@ -392,6 +413,12 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       await db.update(puzzles).set({ status }).where(eq(puzzles.id, id));
       return 'ok';
     },
+    async markReviewed(id, reviewed, now = new Date()) {
+      const [r] = await db.select({ id: puzzles.id }).from(puzzles).where(eq(puzzles.id, id));
+      if (!r) return 'not_found';
+      await db.update(puzzles).set({ reviewedAt: reviewed ? now : null }).where(eq(puzzles.id, id));
+      return 'ok';
+    },
   };
 }
 
@@ -414,7 +441,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       if (shape !== 'ok') return { ok: false, error: shape };
       if (groups.some((g) => g.productIds.some((id) => !known.has(id)))) return { ok: false, error: 'unknown_product' };
       const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, "0")}`;
-      rows.unshift({ id, status, source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, topicId: null, tags: [], groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds, productIds: g.productIds })) });
+      rows.unshift({ id, status, source: 'curated', createdAt: 0, reviewedAt: null, tierId: tierId ?? null, ageTrack, topicId: null, tags: [], groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds, productIds: g.productIds })) });
       return { ok: true, id };
     },
     async swapProduct(puzzleId, fromProductId, toProductId) {
@@ -437,7 +464,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       for (const { puzzle: g, tierId } of made) {
         const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, '0')}`;
         ids.push(id);
-        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', topicId: opts.topicId ?? null, tags: cleanTags(opts.tags ?? []), groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds], productIds: [...x.productIds] })) });
+        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, reviewedAt: null, tierId, ageTrack: 'adult', topicId: opts.topicId ?? null, tags: cleanTags(opts.tags ?? []), groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds], productIds: [...x.productIds] })) });
       }
       return { requested: count, created: made.length, catalogSize: catalog.length, ids };
     },
@@ -480,14 +507,16 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       if (!validSlug(slug)) return { ok: false, error: 'slug' };
       if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
       if (topicRows.some((x) => x.slug === slug && x.id !== t.id)) return { ok: false, error: 'duplicate' };
+      if (t.iconKey && !isItemIconKey(t.iconKey)) return { ok: false, error: 'icon' };
+      if (t.emoji && cleanEmoji(t.emoji) === null) return { ok: false, error: 'emoji' };
       if (t.id) {
         const x = topicRows.find((r) => r.id === t.id);
         if (!x) return { ok: false, error: 'not_found' };
-        Object.assign(x, { slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive });
+        Object.assign(x, { slug, nameFa, ...(t.iconKey === undefined ? {} : { iconKey: t.iconKey || null }), ...(t.emoji === undefined ? {} : { emoji: cleanEmoji(t.emoji) }), sortOrder: t.sortOrder, isActive: t.isActive });
         return { ok: true, id: x.id };
       }
       const id = `00000000-0000-7000-d000-${String(topicRows.length + 1).padStart(12, '0')}`;
-      topicRows.push({ id, slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive, puzzles: 0 });
+      topicRows.push({ id, slug, nameFa, iconKey: t.iconKey || null, emoji: cleanEmoji(t.emoji), sortOrder: t.sortOrder, isActive: t.isActive, puzzles: 0 });
       return { ok: true, id };
     },
     async setTopic(puzzleId, topicId, tags) {
@@ -536,6 +565,12 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       const r = rows.find((x) => x.id === id);
       if (!r) return 'not_found';
       r.status = status;
+      return 'ok';
+    },
+    async markReviewed(id, reviewed, now = new Date()) {
+      const r = rows.find((x) => x.id === id);
+      if (!r) return 'not_found';
+      r.reviewedAt = reviewed ? now.getTime() : null;
       return 'ok';
     },
   };

@@ -797,3 +797,55 @@ Owner (2026-10-14): a new Login Home design puts a gold «قیمت/سوال» ta
 ## D240 — One app-icon pair (adult vault, male/female) for every track; gender switch restarts the app (2026-10-15, owner)
 
 Owner: `docs/design/Dozari App Icon.dc.html` (3D hero on the vault coin, مردانه/زنانه) replaces every app icon — Android launcher/splash, PWA, favicon, landing — for kid, teen and adult alike. Supersedes the candy icons of the age-theme pass; the icon switch stays but follows **gender only** (`iconFor(gender)`: `adult`/`adultFemale`). On Android, changing gender in the profile asks for confirmation and then closes and reopens the app (`DozariAppIcon.restart`), because the launcher only shows the new icon on a fresh start. PWA/web icons are static (male). Art: exported PNGs in `docs/design/export/app-icon/`, built by `apps/mobile/scripts/build-app-icons.py`.
+
+## D241 — Admin install/gameplay stats, Bazaar release status, Myket/Bazaar review missions (2026-10-17, proposed)
+
+Owner: a full install picture per market including PWA, per-player puzzle usage, Bazaar monitoring, and review missions for Myket and Bazaar. Built: a «آمار نصب و بازی» admin section (`logic/admin-stats.md`) over `user_clients` (+`pwa`, `first_pwa`) and a new append-only `puzzle_plays` log; a read-only CafeBazaar Pishkhan monitor (env `BAZAAR_PISHKHAN_TOKEN`; the API has no download counts, only release state); missions `rate_myket` and `rate_bazaar` (default 40 coins each, admin settings `profiletask.coins_rate_*`), shown only in the build of that market, opening the market's own comment/rating screen. Proposed defaults: stats exclude bots; Bazaar opens its comment form through the small native module `store-review` (`ACTION_EDIT` intent on `bazaar://details`, Android only); if Bazaar is missing or refuses, it falls back to `bazaar://details`, then the web page. History in `puzzle_plays` starts at deploy. Myket has no equivalent monitoring API, so only its install channel is counted.
+
+## D242 — Puzzle review mark (بازبینی) in the admin (2026-10-17, proposed)
+
+Owner: approved puzzles should be re-checked later; players are unaffected, the admin sees «بازبینی نشده» or the review date on each puzzle, can re-review, and has a phone-friendly review tab with filters. Built: nullable `puzzles.reviewed_at`, `PUT /admin/puzzles/:id/review`, review-state filter on the puzzle lists and the daily picker, «بازبینی» tab (`logic/admin-panel.md` §Puzzle review). Proposed defaults: existing and new puzzles start unreviewed; editing a puzzle does not clear the mark (the admin can use «برداشتن علامت»).
+
+## D243 — Mini-app uses the app's own authentication; no messenger login (2026-10-17, owner)
+
+Owner: inside Telegram and Bale the game must not log in through the messenger; it works with the app's own sign-in (guest account + «ورود با شماره»), the phone number being the identity.
+Built: `POST /auth/miniapp` and the `initData` verification are removed (`apps/server/src/auth/miniapp.ts` keeps only `miniAppDeviceId`); `miniapp-bridge.js` no longer sends anything to the
+server, it only readies the host, tells Telegram from Bale (`tgWebAppPlatform`) to pick the SDK, and starts the game; the one-tap «تأیید با بله» is off (SMS proof only). `logic/miniapp.md` updated.
+Consequences, accepted by the owner: accounts the old login made keep working on the phones that stored their token, but one whose number was never verified and whose storage is lost
+cannot be reached again; in Bale's sandboxed iframe (no `localStorage`) a guest account lasts one visit unless a number is verified. Bale in-app payment (`openInvoice`) stays as it was: it maps the
+Bale id only to accounts the old login made; new guest accounts pay once their Bale chat is linked (a phone-number mapping is the proposed next step). Unverified: that Bale's launches carry no `tgWebAppPlatform`.
+## D244 — Group game: the bot plays the daily puzzle inside Bale/Telegram groups, then pulls players to the app (2026-10-17, proposed)
+
+Owner (2026-10-17): a service so the game can be played in Telegram/Bale groups, to attract installs; bot added to groups, a party mode, and some things only the app has. Bale first. Proposed: the existing bot gains a cooperative group board (inline buttons, one edited message) on today's daily puzzle, one play per group per day, no coins in groups, a «ادامه در بازی» mini-app deep link at the end; phases and data in `docs/logic/group-game.md`. Open: the free plays per group per day (proposed 1) and whether Telegram goes live together with Bale.
+
+## D245 — Group game: solo-in-parallel 16-card round with a 15-minute timer, price countdown, personal invite link (2026-10-17, proposed)
+
+Owner (2026-10-17): the shared cooperative board is chaos (everyone ticks and submits over each other); `/price` should say more clearly what to do and show a timer; a personal link for inviting friends would be good.
+- **Supersedes the cooperative board of D244:** every member plays alone on one static board for `GROUP_PLAY_MS` (15 min); picks and results are toasts only the tapper sees; at the deadline the answers and every member's result are announced (details: `docs/logic/group-game.md` §Rules of the round).
+- `/price`: clearer question text and a visible countdown (the question is rewritten every `GROUP_PRICE_TICK_MS` with seconds left and how many answered).
+- **Built (owner approved 2026-10-17; personal invite link):** a linked player sends `/invite` to the bot in a private chat and gets `https://ble.ir/<bot>?startapp=i_<HANDLE>` (their public ID, `docs/logic/find-friends.md`); the mini-app bridge maps `i_<HANDLE>` to the app's existing `POST /friends/link {handle}` (new accounts become friends at once). Group chats never link accounts, so no personal link is made inside a group. Needs: bridge param, game-side handler on web, bot command.
+
+## D246 — Quiet notifications: only what needs a person (2026-10-18, owner)
+
+Owner: push must not be annoying; send only important things (friend request, private message, table join request), plus a rare nudge to come back for the reward / daily puzzle (interval adjustable in admin). No win/loss messages, not even in the bots.
+- **Pushed outside the app** (Web Push, FCM, IRNoti, Android background check): friend request, private message, table invite, table join request (`table_request`, to the host). Inbox news (admin/birthday messages), table answers and anything else stay in-app (badge/toast). Inbox messages are no longer in `GET /me/pending-notices`.
+- **Bale/Telegram:** `notify.match_result` now defaults to **off** (admin can still enable it; the app push for it follows the same switch). `daily_ready` is a come-back nudge: sent only when the player has not claimed for `notify.reminder_days` days (default 3, admin range 1–30), at most once per claim, so a daily player never gets it.
+- Not changed: the group game's end-of-round results (that is the game itself, in a group the players started); security/admin/broadcast messages.
+- Open: the nudge still goes only to Bale-linked players; app-only players get none yet (would need an app push + opt-out store).
+
+## D247 — Group bot speaks only when called (2026-10-18, owner)
+
+Owner: in a group the bot must not post extra messages; it answers only when called by name («دوزاری») or by a game command. Seen on Bale: every ordinary group message got the private-chat help text because the group had no `chat.type`. Fixed: group detection falls back to sender id ≠ chat id; a name call gets the command list at most once a minute per group; everything else is silent. Not built: Persian-word commands (e.g. «بازی») — only `/play`, `/price`, `/table`, `/top`, `/help`.
+
+## D248 — Private bot chat: stray text gets the help text at most once per 10 minutes (2026-10-19, proposed)
+
+Owner: typing anything to the bot answered with the same message every time. In a private chat, text that is neither a command nor a link code now gets the help text once per 10 minutes per chat (`/help` always answers; wrong codes still get the bad-code reply, rate-limited as before). Needs confirmation of which message the owner saw (private chat vs group).
+
+## D249 — Group play pays the player's own account (2026-10-20, owner)
+
+Owner: playing the bot in a group must show on the player's real account so they keep playing in groups — points should raise their level and earn coins, on Telegram too. Overrides D244's «no coins in groups, group results never touch stats». Group points of a linked **adult** account (Bale link or mini-app login) become XP (1 per point, cap 80/day) and coins (1 per 5 points, cap 20/day) through the ledger (`group_play`); unlinked players and kid/teen accounts get nothing. Also: `/question` general-question mode (5 questions from the trivia bank, same scoring as `/price`), `GET /me/group-stats` card in the app, and admin numbers in «گروه‌های ربات». Numbers are proposed, tune in `config/groupgame.ts`; the cap exists so a group of alts cannot farm. Spec: `docs/logic/group-game.md` §Account rewards.
+
+
+## D250 — Store reviews on the landing site (2026-10-21, proposed)
+
+Owner: bring players' app-store reviews onto the site. Default: the owner enters them by hand (no store API, no scraping) in the admin panel; shown on `/`, `/download` and a new `/reviews` page with stars, market name and a link to the listing, never as `Review`/`AggregateRating` structured data. Names should be short or pseudonymous and a row can be hidden on request. Details: `docs/logic/landing-site.md` §Store reviews.

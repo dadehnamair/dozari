@@ -4,9 +4,17 @@ Single-page app served at `GET /admin` (vanilla JS, no external requests, strict
 Source: `apps/server/src/admin/ui/` — `styles.ts` (design system, light/dark, RTL), `core.ts` (DOM/API helpers, modal, drawer, `ask` confirm), `kit.ts` (icons, page header, `dtable`, `seg`, `searchBox`…),
 `shell.ts` (navigation tree + router + Ctrl+K palette + sign-in), `views1/2/3.ts` (pages).
 
+## Working behaviour (shared by every page)
+
+- Sidebar/tab badges refresh on navigation (at most every 20 s), every 2 min, and right after a price / bot-suggestion / chat-report decision.
+- A thin progress bar shows while any request is in flight; an unreachable server says so («اتصال به سرور برقرار نشد») instead of «خطا (۰)».
+- An expired session (401) closes every open dialog before showing the sign-in form; a view that throws shows a retry card instead of a blank page; stray script errors raise one toast.
+- A dialog closes on a backdrop click only if the press also started there (selecting text and releasing outside keeps it open). Enter submits add/edit forms; in settings Enter saves the row.
+- Settings keep unsaved edits (yellow-tinted row) when another row is saved, the group changes or a search is typed. User search ignores out-of-order responses. On a phone the menu closes on an outside tap or Esc.
+
 ## Information architecture
 
-Seven sections in a collapsible sidebar; sections with several pages show them as tabs (`#/section/tab`). Old flat links (`#/users`) redirect. Badge counts (pending prices, bot inbox, open chat reports) show on the
+Eight sections in a sidebar that follows `docs/design/Dozari Admin - Sidebar Menu` (navy glass, gold active bar, mono section labels پایش / محتوا و بازی / ارتباط / پیکربندی, single-open accordion, collapsible icon rail with hover flyouts, remembered in `localStorage.rail`; Lalezar brand font is self-hosted at `/admin/fonts`); the inline search box filters the menu (`Ctrl/⌘+K` focuses it, Enter opens the first match); sections with several pages show them as tabs (`#/section/tab`). Old flat links (`#/users`) redirect. Badge counts (pending prices, bot inbox, open chat reports) show on the
 sidebar and tabs.
 
 | section | tabs |
@@ -20,14 +28,15 @@ sidebar and tabs.
 | سایت معرفی و لینک‌ها | blog · cast · FAQ · short links |
 | سیستم | settings (searchable) · admin accounts (owner) · socket service · **database backups** (owner only, `docs/logic/backups.md`) · audit log (searchable, filter by admin) |
 
-**Quick jump** — `Ctrl/⌘+K` (or `/`): jump to any page, toggle the theme, sign out, or search players by name/id and open the record straight away.
+**Quick jump** — `/` or the top-bar button (`Ctrl/⌘+K` focuses the sidebar search instead): jump to any page, toggle the theme, sign out, or search players by name/id and open the record straight away.
 Users open in a side drawer with tabs (overview + avatar picker · account & contact · game & items · coins/gems · moderation · notes). «حساب و تماس» shows handle, phone (+ verified),
 e-mail, device id, city, age track, privacy flags, chat unlock, Bale link and **the last device** (platform, OS version, app build, market now and market of the first install). Phone, e-mail
 and device id are only returned to roles with the `users` permission (owner, support); the exact birth date stays owner-only. The user list also searches phone / handle / e-mail for those roles.
 «بازی و آیتم‌ها»: XP, games/wins, gems, stock items, owned cosmetics (worn or not) and recent shop purchases.
 
-**Last device** — the app sends `x-client-platform|os|build|store` on every API call (`apps/mobile/src/net/clientHeaders.ts`); after the response the server records them for the signed-in
+**Last device** — the app sends `x-client-platform|os|build|store|pwa` on every API call (`apps/mobile/src/net/clientHeaders.ts`); after the response the server records them for the signed-in
 player in `user_clients` (`apps/server/src/clients/`, at most once per 30 min unless something changed). The first row's store/build is kept as the install source. Client-reported: for display only.
+Install/market, gameplay and per-player puzzle numbers live in the «آمار نصب و بازی» section: `logic/admin-stats.md`.
 Users open in a side drawer; destructive actions use a styled confirmation dialog instead of the browser's `confirm`.
 
 ## Economy health (`GET /admin/economy?days=7|30|90`)
@@ -85,6 +94,14 @@ Built behind `feature.age_tracks` (full spec and status: `age-tracks.md`). In th
 - **Message center:** audiences `all` and `bale_linked` reach **adults only**; `kid` and `teen` are separate, deliberate audiences (migration 0065).
 - **Content:** «کلمه‌آموزی کودک» (lesson editor and approval), the kid/teen puzzle builder and per-track taunt libraries («کل‌کل‌های آماده») and the stricter word list («فیلتر کلمات»).
 - **Audit log:** every band choice of a player (`age_track.choose`), guardian link / add child / child band move / settings change / removal (`guardian.*`) and the admin actions above are recorded.
+
+## Puzzle review (بازبینی, D242)
+
+Approved puzzles can be re-checked later without leaving play: `puzzles.reviewed_at` (null = «بازبینی نشده») is only an admin mark, serving and status ignore it.
+- Every puzzle card shows «بازبینی نشده» or «بازبینی شد · <Jalali date and time>» with a button «بازبینی شد ✓» / «بازبینی مجدد» (`PUT /admin/puzzles/:id/review {reviewed}`; pending edits on the card are saved first; `reviewed:false` clears the mark; audit `puzzle.review`).
+- Puzzle list tabs have a review-state filter (all / نشده / شده) next to the age, group, tag and level filters; the daily-puzzle picker has the same filter.
+- The **«بازبینی»** tab walks the filtered puzzles one at a time (phone-first, sticky bar: قبلی · n از N · بازبینی شد ✓ · بعدی). Default filter = not reviewed, active + draft; order = never reviewed first, then longest since the last review, so marking one shows the next.
+- `GET /admin/puzzles` returns up to 1000 puzzles.
 
 ## Image uploads
 

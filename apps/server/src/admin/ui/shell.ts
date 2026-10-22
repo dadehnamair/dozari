@@ -6,8 +6,14 @@ var VIEWS = {};
  * Routes look like #/players/users; old flat links such as #/users are redirected.
  */
 var TREE = [
-  { id: 'dashboard', title: 'نمای کلی', icon: 'dashboard', tabs: [
+  { id: 'dashboard', section: 'پایش', title: 'نمای کلی', icon: 'dashboard', tabs: [
     ['dashboard', 'نمای کلی', 'وضعیت بازی، کارهای منتظر تو و میان‌برها', 'داشبورد آمار خانه']
+  ] },
+  { id: 'stats', title: 'آمار نصب و بازی', icon: 'dashboard', tabs: [
+    ['installs', 'نصب‌ها و بازارها', 'نصب از کافه‌بازار، مایکت، بله، PWA و وب با جزئیات نسخه و وضعیت انتشار بازار', 'نصب بازار مایکت کافه‌بازار pwa وب اندروید نسخه build انتشار پیشخان'],
+    ['gameplay', 'بازی و پازل‌ها', 'پازل بازی‌شده و مصرف‌شده، گروه پیداشده، اشتباه و راهنما', 'پازل بازی مصرف گروه جواب اشتباه راهنما آمار'],
+    ['playerstats', 'آمار بازیکن‌ها', 'ریز بازی، گروه، اشتباه، راهنما و پازل مصرف‌شده‌ی هر بازیکن', 'بازیکن آمار پازل جواب مصرف ریز'],
+    ['botgroups', 'گروه‌های ربات', 'گروه‌های بله و تلگرام که ربات در آن‌ها بازی می‌شود و حساب‌های تازه‌ای که از لینک گروه آمدند', 'گروه ربات بله تلگرام قیف نصب لینک جذب']
   ] },
   { id: 'players', title: 'بازیکنان و نظارت', icon: 'players', tabs: [
     ['users', 'کاربران', 'جستجو، مسدودسازی، سکه، نشان و یادداشت برای هر بازیکن', 'بازیکن کاربر بن مسدود سکه اسم'],
@@ -21,7 +27,7 @@ var TREE = [
     ['bots', 'بازیکن‌های ربات', 'بازیکن‌های ساختگی برای پر کردن صف', 'ربات بازیکن صف'],
     ['invites', 'کد معرف', 'کدهای دعوت و کمپین‌ها', 'کد دعوت معرف کمپین']
   ] },
-  { id: 'catalog', title: 'محتوا و قیمت‌ها', icon: 'catalog', tabs: [
+  { id: 'catalog', section: 'محتوا و بازی', title: 'محتوا و قیمت‌ها', icon: 'catalog', tabs: [
     ['catalog', 'کاتالوگ محصولات', 'محصول‌ها، آیکن‌ها و تاریخچه‌ی قیمت', 'محصول کالا آیکن'],
     ['categories', 'دسته‌بندی محصولات', 'تعریف، ویرایش و مرتب‌کردن دسته‌های محصول (خوراکی، خودرو، …)', 'دسته بندی دسته‌بندی محصول کتگوری'],
     ['prices', 'بازبینی قیمت‌ها', 'قیمت‌هایی که دستی ثبت شده و منتظر تأییدند', 'قیمت تایید'],
@@ -51,7 +57,7 @@ var TREE = [
     ['tournaments', 'تورنومنت‌ها', 'ساخت و مدیریت مسابقه‌های ویژه', 'تورنومنت مسابقه'],
     ['sponsors', 'اسپانسرها', 'اسپانسرهای تورنومنت‌ها', 'اسپانسر حامی بنر']
   ] },
-  { id: 'comms', title: 'ارتباط با بازیکن', icon: 'comms', tabs: [
+  { id: 'comms', section: 'ارتباط', title: 'ارتباط با بازیکن', icon: 'comms', tabs: [
     ['messages', 'مرکز پیام', 'ارسال پیام همگانی و پیگیری گیرنده‌ها', 'پیام اعلان همگانی'],
     ['bale', 'ربات بله', 'وضعیت ربات بله و اعلان‌ها', 'بله اعلان'],
     ['sms', 'پیامک', 'درگاه پیامک، متن پیام‌ها و ارسال آزمایشی', 'پیامک sms درگاه ارائه‌دهنده کد تایید irnoti kavenegar']
@@ -60,10 +66,11 @@ var TREE = [
     ['landingposts', 'بلاگ', 'مقاله‌های بلاگ سایت معرفی', 'بلاگ مقاله سایت'],
     ['landingcast', 'بازیگران', 'شخصیت‌های صفحه‌ی بازیگران', 'بازیگران شخصیت'],
     ['landingfaq', 'سوالات متداول', 'پرسش و پاسخ صفحه‌ی اول', 'سوال متداول faq'],
+    ['landingreviews', 'نظرات مارکت‌ها', 'نظر بازیکن‌ها در بازار، مایکت و ...', 'نظر مارکت بازار مایکت ستاره بازخورد'],
     ['landingcomments', 'نظرات', 'تأیید یا پنهان‌کردن نظر بازدیدکننده‌ها', 'نظر نظرات کامنت تایید'],
     ['shortlinks', 'لینک کوتاه', 'لینک‌های کوتاه و شمارش کلیک', 'لینک کوتاه']
   ] },
-  { id: 'system', title: 'سیستم', icon: 'system', tabs: [
+  { id: 'system', section: 'پیکربندی', title: 'سیستم', icon: 'system', tabs: [
     ['settings', 'تنظیمات', 'تنظیمات زنده‌ی سرور؛ حالت تعمیر، حداقل نسخه و کلیدهای قابلیت‌ها', 'تنظیم تعمیر نسخه'],
     ['admins', 'مدیران پنل', 'حساب‌ها و نقش‌های ادمین', 'ادمین نقش رمز'],
     ['socket', 'سرویس سوکت', 'اتصال‌ها، صف و مسابقه‌های زنده', 'سوکت صف زنده'],
@@ -95,6 +102,7 @@ var DESC = {
   shop: 'آیتم‌هایی که بازیکن با سکه یا الماس می‌خرد، و متن راهنمای فروشگاه.',
   landingposts: 'مقاله‌های بلاگ سایت معرفی (مارک‌داون). عنوان و خلاصه‌ی روشن، جمله‌ی اول هر بخش پاسخ مستقیم؛ تغییر نشانی مقاله خودکار ۳۰۱ می‌شود.',
   landingcast: 'شخصیت‌ها و آدم‌های دوزاری برای صفحه‌ی «بازیگران» سایت معرفی.',
+  landingreviews: 'نظرهایی که بازیکن‌ها در مارکت‌ها (بازار، مایکت، ...) گذاشته‌اند؛ دستی اینجا وارد می‌شود و روی صفحه‌ی اول، دانلود و «نظر بازیکن‌ها» با نام مارکت و لینک می‌آید. ستاره‌ی ۱ تا ۵ یا خالی. اسم را کوتاه یا مستعار بگذارید و هر وقت صاحب نظر خواست، پنهانش کنید.',
   landingcomments: 'نظرهایی که زیر مقاله‌ها و صفحه‌ی شخصیت‌ها ثبت می‌شود؛ تا تأیید نشوند در سایت دیده نمی‌شوند.',
   landingfaq: 'پرسش‌ و پاسخ‌های صفحه‌ی اول سایت معرفی (برای گوگل و هوش مصنوعی هم منتشر می‌شود).',
   shortlinks: 'لینک‌های کوتاه دامنه‌ی کوتاه (مثل 2oi.ir): بسازید، خاموش کنید و تعداد کلیک را ببینید.',
@@ -133,27 +141,60 @@ function tabCount(t) { var k = TAB_COUNT[t[0]]; return k ? (S.counts[k] || 0) : 
 function secCount(sec) { return sec.tabs.reduce(function (a, t) { return a + tabCount(t); }, 0); }
 function href(secId, key) { return secId === 'dashboard' ? '#/dashboard' : '#/' + secId + '/' + key; }
 
+var navQuery = '', railOn = load('rail') === '1';
+function isRail() { return railOn && window.innerWidth > 900; }
+function applyRail() { document.getElementById('app').classList.toggle('rail', isRail()); }
 function drawNav() {
-  var nav = clear($('nav'));
-  TREE.forEach(function (sec) {
+  var rail = isRail(), q = navQuery.trim();
+  applyRail();
+  var nav = clear($('nav')), shown = 0, lastSec = '';
+  TREE.forEach(function (sec, si) {
     var tabs = sec.tabs.filter(function (t) { return tabVisible(sec, t); });
     if (!tabs.length) return;
+    var selfMatch = !q || sec.title.indexOf(q) >= 0;
+    if (q && !selfMatch) tabs = tabs.filter(function (t) { return t[1].indexOf(q) >= 0; });
+    if (q && !tabs.length) return;
+    shown++;
+    var single = sec.tabs.length === 1, multi = !single;
     var active = S.sec === sec.id, c = secCount(sec);
-    if (sec.tabs.length === 1) {
-      nav.appendChild(h('div', { class: 'nav-sec' + (active ? ' active' : '') }, [h('a', { class: 'nav-head', href: href(sec.id, tabs[0][0]), style: 'text-decoration:none', 'aria-current': active ? 'page' : null, onclick: function () { document.body.classList.remove('nav-open'); } }, [ic(sec.icon), h('span', { text: sec.title })])]));
-      return;
+    var open = multi && (q ? true : (openSec[sec.id] === undefined ? active : openSec[sec.id]));
+    if (sec.section && !q) {
+      if (rail) { if (si > 0) nav.appendChild(h('div', { class: 'nav-div' })); }
+      else nav.appendChild(h('div', { class: 'nav-label', text: sec.section }));
     }
-    var open = openSec[sec.id] === undefined ? active : openSec[sec.id];
-    var box = h('div', { class: 'nav-sec' + (open ? ' open' : '') + (active ? ' active' : '') });
-    box.appendChild(h('button', { class: 'nav-head', type: 'button', 'aria-expanded': String(open), onclick: function () { openSec[sec.id] = !open; drawNav(); } }, [ic(sec.icon), h('span', { text: sec.title }), c && !open ? h('span', { class: 'count', text: fa(c) }) : null, h('span', { class: 'chev' }, [ic('chev')])]));
-    box.appendChild(h('div', { class: 'nav-sub' }, tabs.map(function (t) {
+    var lit = active && (single || !open || rail);
+    var box = h('div', { class: 'nav-sec' + (open ? ' open' : '') + (active ? ' active' : '') + (lit ? ' lit' : '') });
+    var inner = [h('span', { class: 'bar' }), h('span', { class: 'ico' }, [ic(sec.icon), rail && c ? h('span', { class: 'dot' }) : null])];
+    if (!rail) {
+      inner.push(h('span', { class: 'lbl', text: sec.title }));
+      if (multi && c && !open) inner.push(h('span', { class: 'sum', text: fa(c) }));
+      if (multi) inner.push(h('span', { class: 'chev' }, [ic('chev')]));
+    }
+    var go = function () { document.body.classList.remove('nav-open'); };
+    var head = single || rail
+      ? h('a', { class: 'nav-head', href: href(sec.id, tabs[0][0]), title: sec.title, 'aria-current': active ? 'page' : null, onclick: go }, inner)
+      : h('button', { class: 'nav-head', type: 'button', title: sec.title, 'aria-expanded': String(open), onclick: function () { var was = open; openSec = {}; openSec[sec.id] = !was; drawNav(); } }, inner);
+    box.appendChild(head);
+    var link = function (t) {
       var n = tabCount(t);
-      return h('a', { href: href(sec.id, t[0]), 'aria-current': active && S.route === t[0] ? 'page' : null, onclick: function () { document.body.classList.remove('nav-open'); } }, [h('span', { text: t[1] }), n ? h('span', { class: 'count', text: fa(n) }) : null]);
-    })));
+      return h('a', { href: href(sec.id, t[0]), 'aria-current': active && S.route === t[0] ? 'page' : null, onclick: function () { go(); } }, [h('span', { text: t[1] }), n ? h('span', { class: 'count', text: fa(n) }) : null]);
+    };
+    if (multi && !rail) box.appendChild(h('div', { class: 'nav-fold' }, [h('div', {}, [h('div', { class: 'nav-sub' }, tabs.map(link))])]));
+    if (multi && rail) {
+      box.addEventListener('mouseenter', function () { if (!box.querySelector('.flyout')) box.appendChild(h('div', { class: 'flyout' }, [h('b', { text: sec.title })].concat(tabs.map(link)))); });
+      box.addEventListener('mouseleave', function () { var f = box.querySelector('.flyout'); if (f) f.remove(); });
+    }
     nav.appendChild(box);
   });
+  if (!shown) nav.appendChild(h('div', { class: 'nav-none', text: 'موردی پیدا نشد' }));
 }
+function focusSideSearch() {
+  if (railOn && window.innerWidth > 900) { railOn = false; store('rail', '0'); drawNav(); }
+  setTimeout(function () { $('side-q').focus(); $('side-q').select(); }, 0);
+}
+var countsAt = 0;
 function refreshCounts() {
+  countsAt = Date.now();
   api('/admin/dashboard').then(function (r) { if (!r.ok) return; S.counts.prices = r.body.catalog.pricesPending; S.counts.inbox = r.body.bot.candidatesPending; drawNav(); });
   api('/admin/chat/reports').then(function (r) { if (!r.ok) return; S.counts.reports = r.body.reports.filter(function (x) { return !x.resolved; }).length; drawNav(); });
 }
@@ -168,6 +209,7 @@ function route() {
   if (!tab) { location.replace('#/dashboard'); return; }
   if (sec.tabs.length > 1) store('tab.' + sec.id, tab[0]);
   S.sec = sec.id; S.route = tab[0];
+  if (S.me && Date.now() - countsAt > 20000) refreshCounts();
   document.title = tab[1] + ' · مرکز مدیریت دوزاری';
   clear($('crumb')).appendChild(h('span', {}, [sec.id === 'dashboard' ? h('b', { text: 'نمای کلی' }) : [h('span', { text: sec.title }), ' › ', h('b', { text: tab[1] })]]));
   drawNav();
@@ -183,7 +225,10 @@ function route() {
   var body = h('div', { class: 'view-body' });
   root.appendChild(body);
   if (sec.tabs.length === 1) { /* dashboard draws its own heading */ } else body.appendChild(h('p', { class: 'muted', style: 'margin:-6px 0 16px;font-size:13.5px', text: DESC[tab[0]] || tab[2] }));
-  VIEWS[tab[0]](body);
+  try { VIEWS[tab[0]](body); } catch (err) {
+    console.error(err);
+    clear(body).appendChild(h('div', { class: 'empty-state' }, [h('b', { text: 'این صفحه باز نشد' }), 'خطای غیرمنتظره؛ دوباره امتحان کن.', h('div', { style: 'margin-top:12px' }, [h('button', { class: 'btn primary', text: 'تلاش دوباره', onclick: route })])]));
+  }
   window.scrollTo(0, 0);
 }
 function setTheme(t) { S.theme = t; if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme'); store('theme', t); }
@@ -249,16 +294,17 @@ function setLoginMode(tm) {
   $('login-user').hidden = tm; $('login-pass').hidden = tm; $('login-token').hidden = !tm;
   $('login-mode').textContent = tm ? 'ورود با نام کاربری و رمز' : 'ورود با توکن اصلی';
 }
-function logout() { sstore('tok', null); S.token = ''; S.me = null; S.counts = {}; while (OVERLAYS.length) closeTop(); showLogin(''); }
+function logout() { endSession(''); }
 function toggleTheme() { var dark = S.theme === 'dark' || (S.theme === null && window.matchMedia('(prefers-color-scheme: dark)').matches); setTheme(dark ? 'light' : 'dark'); }
 function enter(token) {
   S.token = token;
   api('/admin/me').then(function (m) {
     if (m.status === 401) { sstore('tok', null); S.token = ''; return showLogin('ورود ناموفق بود.'); }
+    if (m.status === 0) return showLogin('اتصال به سرور برقرار نشد؛ دوباره امتحان کن.');
     if (m.status === 404 || !m.ok) { return showLogin('پنل روی این سرور فعال نیست.'); }
     S.me = m.body;
     api('/admin/meta').then(function (r) {
-      if (!r.ok) return showLogin('پنل روی این سرور فعال نیست.');
+      if (!r.ok) return showLogin(r.status === 0 ? 'اتصال به سرور برقرار نشد؛ دوباره امتحان کن.' : 'پنل روی این سرور فعال نیست.');
       S.meta = r.body; applyCategoryNames(); sstore('tok', token);
       $('who-name').textContent = S.me.name; $('who-role').textContent = ROLE_FA[S.me.role] || S.me.role;
       $('avatar').textContent = initials(S.me.name);
@@ -268,8 +314,11 @@ function enter(token) {
   });
 }
 window.addEventListener('hashchange', route);
+document.addEventListener('click', function (e) { if (document.body.classList.contains('nav-open') && !e.target.closest('.side') && !e.target.closest('#menu')) document.body.classList.remove('nav-open'); });
+setInterval(function () { if (S.me && !document.hidden) refreshCounts(); }, 120000);
 document.addEventListener('keydown', function (e) {
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (S.me) openPalette(); }
+  if (e.key === 'Escape' && !OVERLAYS.length) document.body.classList.remove('nav-open');
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (S.me) focusSideSearch(); }
   else if (e.key === '/' && S.me && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '') && !OVERLAYS.length) { e.preventDefault(); openPalette(); }
 });
 $('login-mode').addEventListener('click', function () { setLoginMode(!tokenMode); showLogin(''); });
@@ -288,7 +337,14 @@ $('logout').addEventListener('click', logout);
 $('menu').addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
 $('theme').addEventListener('click', toggleTheme);
 $('quick').addEventListener('click', openPalette);
-$('side-search').addEventListener('click', function () { document.body.classList.remove('nav-open'); openPalette(); });
+$('side-q').addEventListener('input', function () { navQuery = this.value; drawNav(); });
+$('side-q').addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') { this.value = ''; navQuery = ''; drawNav(); }
+  else if (e.key === 'Enter') { var a = $('nav').querySelector('.nav-sub a'); if (a) { location.hash = a.getAttribute('href'); document.body.classList.remove('nav-open'); } }
+});
+$('rail').appendChild(ic('rail')); $('side-ic').appendChild(ic('search'));
+$('rail').addEventListener('click', function () { railOn = !railOn; store('rail', railOn ? '1' : '0'); drawNav(); });
+window.addEventListener('resize', applyRail);
 setTheme(load('theme'));
 var saved = sload('tok');
 if (saved) enter(saved); else showLogin('');

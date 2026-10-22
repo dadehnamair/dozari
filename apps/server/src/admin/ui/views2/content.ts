@@ -174,7 +174,7 @@ VIEWS.dailypuzzle = function (root) {
   /* One puzzle as a compact card: a short id, then its four group titles, each cut to one line. */
   function pzCard(p, extra) {
     return h('div', { class: 'pz-card', title: p.titles.join('\n') }, [
-      h('div', { class: 'pz-id ltr', text: '#' + p.id.slice(-6) }),
+      h('div', { class: 'pz-id ltr', text: '#' + p.id.slice(-6) }, [p.reviewedAt ? null : h('span', { class: 'badge b-warn', style: 'margin-inline-start:6px', text: 'بازبینی نشده' })]),
       h('div', { class: 'pz-titles' }, p.titles.map(function (t, i) { return h('div', { class: 'pz-t l' + i, text: cut(t, 46) }); })),
       extra || null
     ]);
@@ -182,11 +182,13 @@ VIEWS.dailypuzzle = function (root) {
   /* Searchable picker: onPick(puzzle) for single choice. */
   function pickPuzzle(title, onPick) {
     var q = searchBox('جستجو در عنوان گروه‌ها…', function () { draw(); });
+    var rev = select([['', 'همه (بازبینی‌شده و نشده)'], ['no', 'فقط بازبینی‌نشده'], ['yes', 'فقط بازبینی‌شده']], '');
+    rev.onchange = function () { draw(); };
     var list = h('div', { class: 'pz-list' });
     function draw() {
       clear(list);
       var term = q.input.value.trim();
-      var rows = puzzles.filter(function (p) { return !term || p.titles.join(' ').indexOf(term) >= 0; });
+      var rows = puzzles.filter(function (p) { return (!term || p.titles.join(' ').indexOf(term) >= 0) && (!rev.value || (rev.value === 'no' ? !p.reviewedAt : !!p.reviewedAt)); });
       if (!rows.length) return list.appendChild(empty('پازلی پیدا نشد'));
       rows.slice(0, 60).forEach(function (p) {
         var c = pzCard(p); c.classList.add('pick-it'); c.tabIndex = 0;
@@ -195,7 +197,7 @@ VIEWS.dailypuzzle = function (root) {
       });
       if (rows.length > 60) list.appendChild(h('div', { class: 'muted', style: 'text-align:center;padding:6px', text: fa(rows.length - 60) + ' پازل دیگر؛ جستجو را دقیق‌تر کن' }));
     }
-    var close = modal(title, h('div', { style: 'display:flex;flex-direction:column;gap:10px' }, [q, list]), [{ label: 'بستن' }]);
+    var close = modal(title, h('div', { style: 'display:flex;flex-direction:column;gap:10px' }, [q, rev, list]), [{ label: 'بستن' }]);
     draw();
   }
   /* Multi-select for a theme's puzzles; every toggle saves at once. */
