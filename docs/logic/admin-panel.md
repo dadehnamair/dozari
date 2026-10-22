@@ -14,7 +14,7 @@ Source: `apps/server/src/admin/ui/` — `styles.ts` (design system, light/dark, 
 
 ## Information architecture
 
-Seven sections in a collapsible sidebar; sections with several pages show them as tabs (`#/section/tab`). Old flat links (`#/users`) redirect. Badge counts (pending prices, bot inbox, open chat reports) show on the
+Eight sections in a sidebar that follows `docs/design/Dozari Admin - Sidebar Menu` (navy glass, gold active bar, mono section labels پایش / محتوا و بازی / ارتباط / پیکربندی, single-open accordion, collapsible icon rail with hover flyouts, remembered in `localStorage.rail`; Lalezar brand font is self-hosted at `/admin/fonts`); the inline search box filters the menu (`Ctrl/⌘+K` focuses it, Enter opens the first match); sections with several pages show them as tabs (`#/section/tab`). Old flat links (`#/users`) redirect. Badge counts (pending prices, bot inbox, open chat reports) show on the
 sidebar and tabs.
 
 | section | tabs |
@@ -28,7 +28,7 @@ sidebar and tabs.
 | سایت معرفی و لینک‌ها | blog · cast · FAQ · short links |
 | سیستم | settings (searchable) · admin accounts (owner) · socket service · **database backups** (owner only, `docs/logic/backups.md`) · audit log (searchable, filter by admin) |
 
-**Quick jump** — `Ctrl/⌘+K` (or `/`): jump to any page, toggle the theme, sign out, or search players by name/id and open the record straight away.
+**Quick jump** — `/` or the top-bar button (`Ctrl/⌘+K` focuses the sidebar search instead): jump to any page, toggle the theme, sign out, or search players by name/id and open the record straight away.
 Users open in a side drawer with tabs (overview + avatar picker · account & contact · game & items · coins/gems · moderation · notes). «حساب و تماس» shows handle, phone (+ verified),
 e-mail, device id, city, age track, privacy flags, chat unlock, Bale link and **the last device** (platform, OS version, app build, market now and market of the first install). Phone, e-mail
 and device id are only returned to roles with the `users` permission (owner, support); the exact birth date stays owner-only. The user list also searches phone / handle / e-mail for those roles.
