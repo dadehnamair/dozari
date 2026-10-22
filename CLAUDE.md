@@ -52,7 +52,7 @@ Code and spec must never diverge: fix one or the other in the same change.
 
 ```bash
 pnpm install; pnpm -r typecheck; pnpm -r lint; pnpm -r test
-docker compose up -d              # optional: mysql + adminer (:8080) + minio (:9001). Docker-free path: docs/LOCAL-DEV.md
+docker compose up -d --build       # whole stack, one `.env` (cp .env.example .env); MinIO: --profile minio. Docker-free path: docs/LOCAL-DEV.md
 pnpm --filter @dozari/server dev  # needs MySQL (docker or native)
 pnpm --filter @dozari/mobile start
 pnpm --filter @dozari/db db:generate  # after editing packages/db/src/schema.ts

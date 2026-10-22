@@ -1,11 +1,11 @@
 # Deploying to a server (production)
 
-`docker-compose.yml` in the repo root is **development only** (MySQL, Adminer, MinIO with throw-away
-passwords and open ports). The production stack is `docker-compose.prod.yml`:
+There is one compose file (`docker-compose.yml`, repo root) and one env file (`.env`, from `.env.example`) for every
+environment; the same stack runs locally and on the server, only the values in `.env` differ. Services:
 
 | Service | What it is | Reachable from outside |
 |---|---|---|
-| `s-dozari-mysql` | MySQL 8.4, data in a volume | no (compose network only) |
+| `s-dozari-mysql` | MySQL 8.4, data in a volume | loopback `127.0.0.1:MYSQL_PORT` only |
 | `s-dozari-migrate` | applies the DB migrations, then exits. **Off by default** (profile `setup`, see below) | no |
 | `s-dozari-server` | the game server (REST, Socket.io, admin panel, product images) | `127.0.0.1:3000` |
 | `s-dozari-web` | the web app (PWA) as static files over plain HTTP | `127.0.0.1:8081` (`WEB_PORT`) |
@@ -27,7 +27,7 @@ that proxy keeps the domains and https and forwards two names to the containers 
 
 **Upgrading from the first mini-app release** (service `s-dozari-bale-miniapp`, now `s-dozari-miniapp`): the old container still holds port 8084, so remove it once before `up`: `docker rm -f c-dozari-bale-miniapp`. `BALE_APP_DOMAIN` / `BALE_APP_PORT` keep working; rename them to `MINIAPP_DOMAIN` / `MINIAPP_PORT` when convenient.
 
-The API address is baked into the web build, so changing `API_DOMAIN` later means editing `.env.prod` and
+The API address is baked into the web build, so changing `API_DOMAIN` later means editing `.env` and
 rebuilding `s-dozari-web`.
 
 ## Android file (direct download)
@@ -48,10 +48,10 @@ the apk stays in git history (~one apk of size per commit): prefer one commit pe
 
 ```bash
 git clone <repo> dozari && cd dozari
-cp deploy/.env.example .env.prod
-nano .env.prod          # every line: domains, MYSQL_*, JWT_SECRET, ADMIN_TOKEN (openssl rand -hex 24)
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-docker compose -f docker-compose.prod.yml --env-file .env.prod ps     # others: running (migrate/seed only exist with --profile setup)
+cp .env.example .env
+nano .env          # every line: domains, MYSQL_*, JWT_SECRET, ADMIN_TOKEN (openssl rand -hex 24)
+docker compose up -d --build
+docker compose ps     # others: running (migrate/seed only exist with --profile setup)
 curl http://127.0.0.1:3000/health   # once the proxy forwards: https://api.mrbots.ir/health
 ```
 
@@ -59,14 +59,14 @@ The server **refuses to start in production** with a short or default `JWT_SECRE
 (`docs/security.md`). Open `https://<API_DOMAIN>/admin`, paste `ADMIN_TOKEN` for quick access. Real admin accounts (roles `owner|editor|support|viewer`) are made with:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm -w /app/apps/server s-dozari-server \
+docker compose run --rm -w /app/apps/server s-dozari-server \
   pnpm exec tsx src/admin/accounts/cli.ts <username> owner "<display name>"
 ```
 
 ### Migrate and seed are temporarily off
 
 `s-dozari-migrate` and `s-dozari-seed` carry the compose profile `setup`, so a plain `up -d --build` does not start them (the server's `depends_on` on them is `required: false`).
-Schema changes are therefore **not** applied automatically. To turn them back on, either add `--profile setup` to the command above, or put `COMPOSE_PROFILES=setup` in `.env.prod`.
+Schema changes are therefore **not** applied automatically. To turn them back on, either add `--profile setup` to the command above, or put `COMPOSE_PROFILES=setup` in `.env`.
 To run them once without enabling permanently use the helper (it runs the step, then does the normal `up -d --build`):
 
 ```bash
@@ -90,11 +90,10 @@ for each. Two things matter: **websockets** (live duels and chat use Socket.io o
 
 ## phpMyAdmin
 
-The `s-dozari-phpmyadmin` service is already in `docker-compose.prod.yml`, bound to **`127.0.0.1:8082`** (change with `PMA_PORT` in `.env.prod`). Forward a domain of your
+The `s-dozari-phpmyadmin` service is already in `docker-compose.yml`, bound to **`127.0.0.1:8082`** (change with `PMA_PORT` in `.env`). Forward a domain of your
 choice (say `pma.mrbots.ir`) to that port in the host's proxy — like the other two, with https from the proxy/CDN — and **protect that domain** (basic auth or an
 IP allow-list; `deploy/nginx.example.conf` has a block with basic auth). Log in with user `dozari` and `MYSQL_PASSWORD` (database `dozari`), or `root` and
-`MYSQL_ROOT_PASSWORD`. Start it with the rest: `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d s-dozari-phpmyadmin`. For local development
-the root `docker-compose.yml` has Adminer on `:8080`.
+`MYSQL_ROOT_PASSWORD`. Start it with the rest: `docker compose up -d s-dozari-phpmyadmin`.
 
 ## Catalogue (products, prices, images)
 
@@ -103,7 +102,7 @@ products yet (`SEED_ON_START=empty`, the default; check with `logs s-dozari-seed
 Caveat: after `--remove-sample` with no real products loaded, the next `up` seeds the samples again; set `0` first. With a shell, load it once (and again after changing the seed files):
 
 ```bash
-dc="docker compose -f docker-compose.prod.yml --env-file .env.prod"
+dc="docker compose"
 $dc run --rm --user root -w /app/packages/db s-dozari-server pnpm exec tsx src/seed/run.ts            # products + prices + sample puzzles
 $dc run --rm --user root -w /app/packages/db s-dozari-server pnpm exec tsx src/seed/upload-images.ts  # product images -> volume
 ```
@@ -127,7 +126,7 @@ $dc run --rm --user root -w /app/packages/db s-dozari-server pnpm exec tsx src/s
 
 ```bash
 git pull
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker compose up -d --build
 docker image prune -f && docker builder prune -f --filter until=72h   # drop old images and build cache so the disk does not fill up
 ```
 
@@ -138,7 +137,7 @@ update with one tap (D102).
 
 ```bash
 # nightly (cron): dump the database
-docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T s-dozari-mysql \
+docker compose exec -T s-dozari-mysql \
   sh -c 'mysqldump -udozari -p"$MYSQL_PASSWORD" --single-transaction dozari' | gzip > dozari-$(date +%F).sql.gz
 ```
 
@@ -154,7 +153,7 @@ the copy: run it once now and about monthly. (Both scripts were syntax-checked o
 
 ## Error reports and statistics (self-hosted)
 
-- **Errors:** set `SENTRY_DSN=https://<key>@errors.example.ir/<projectId>` in `.env.prod` (a GlitchTip or Sentry you host). The server then sends every
+- **Errors:** set `SENTRY_DSN=https://<key>@errors.example.ir/<projectId>` in `.env` (a GlitchTip or Sentry you host). The server then sends every
   unexpected 5xx / crash as one small envelope (error text, stack, route; no bodies or users), at most 20 a minute. Empty = off.
 - **Statistics:** run a self-hosted Umami, then fill `analytics.script_url` and `analytics.site_id` in the admin panel (group «سئو و سایت معرفی»); the landing
   site and the web app add the script. Empty = no statistics. The match funnel / retention reports are Umami's job; the app sends no custom events yet.
@@ -171,3 +170,8 @@ the copy: run it once now and about monthly. (Both scripts were syntax-checked o
 
 - **`s-dozari-landing` service** (`mrdozari.ir`): server-rendered pages (home, blog, cast, `sitemap.xml`, `robots.txt`, `llms.txt`). It has no database; it reads the game server's public content API (`API_URL=http://s-dozari-server:3000`), so start it with the rest (`up -d --build s-dozari-landing`). Content (blog posts, cast, FAQ, hero text) is edited in the game's admin panel under «سایت معرفی». If the game server is down the site keeps serving its last answers for a while and then shows a calm 503 page. Forward `LANDING_DOMAIN` to `127.0.0.1:LANDING_PORT` and give it a certificate like the other names.
 - **`2oi.ir`**: point it at the same reverse proxy and forward it to the **game server** (`127.0.0.1:3000`) **keeping the original `Host` header** (nginx: `proxy_set_header Host $host;`). The server turns requests for `domain.short` into redirects (docs/logic/short-links.md). Links are made in the admin page «لینک کوتاه».
+
+## Migrating from the old two-file setup
+
+Before this change the server used `docker-compose.prod.yml` + `.env.prod`. On the server, once: `mv .env.prod .env`, pull, then
+`docker compose up -d --build`. Container, volume and project names are unchanged, so data volumes are kept.

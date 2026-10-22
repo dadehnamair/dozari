@@ -4,7 +4,7 @@
 # Copy the folder off the machine too (rsync / object storage): a backup on the same disk is not a backup.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-DC="docker compose -f docker-compose.prod.yml --env-file .env.prod"
+DC="docker compose"
 DIR="${BACKUP_DIR:-backups}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
 OUT="$DIR/dozari-$(date +%F).sql.gz"

@@ -4,7 +4,7 @@
 #   deploy/restore-check.sh [backups/dozari-YYYY-MM-DD.sql.gz]      (default: the newest backup)
 set -euo pipefail
 cd "$(dirname "$0")/.."
-DC="docker compose -f docker-compose.prod.yml --env-file .env.prod"
+DC="docker compose"
 FILE="${1:-$(ls -1t "${BACKUP_DIR:-backups}"/dozari-*.sql.gz 2>/dev/null | head -n1)}"
 [ -n "$FILE" ] && [ -f "$FILE" ] || { echo "no backup file found" >&2; exit 1; }
 TMP="dozari_restore_check"

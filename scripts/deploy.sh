@@ -4,14 +4,14 @@
 #   scripts/deploy.sh setup          # apply DB migrations first, then deploy
 #   scripts/deploy.sh seed           # run the seed first, then deploy
 #   scripts/deploy.sh setup seed     # migrations, then seed, then deploy
-# Env file: .env.prod (override with ENV_FILE=...). Details: docs/deploy.md
+# Env file: .env (override with ENV_FILE=...). Details: docs/deploy.md
 # After the stack is up, leftovers from the build (dangling images, build cache older than PRUNE_KEEP) are removed; PRUNE=0 skips it.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-ENV_FILE="${ENV_FILE:-.env.prod}"
-[ -f "$ENV_FILE" ] || { echo "missing $ENV_FILE (cp deploy/.env.example $ENV_FILE and edit it)" >&2; exit 1; }
-dc=(docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE")
+ENV_FILE="${ENV_FILE:-.env}"
+[ -f "$ENV_FILE" ] || { echo "missing $ENV_FILE (cp .env.example $ENV_FILE and edit it)" >&2; exit 1; }
+dc=(docker compose --env-file "$ENV_FILE")
 
 do_setup=0
 do_seed=0
