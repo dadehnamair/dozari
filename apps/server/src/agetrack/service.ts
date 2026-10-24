@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { ageTrackPutSchema, canMeet, canSelfSwitchTrack, parseAgeTrack, trackRules } from '@dozari/shared';
-import { trackFeatureKey } from '@dozari/shared';
+import { TRACK_MISPICK_GRACE_HOURS, trackFeatureKey } from '@dozari/shared';
 import type { BooleanTrackRule, TrackFeature } from '@dozari/shared';
 import type { AgeTrack, ChildLimits, TrackRules } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
@@ -28,6 +28,8 @@ export interface MyAgeTrack {
   rules: TrackRules;
   /** What the guardian chose for this child (kid/teen with a guardian), so the app can hide features and show the soft rest card; null for everybody else. */
   limits: ChildLimits | null;
+  /** Within the grace window after the pick and without a guardian: any track may still be chosen. */
+  canRevert: boolean;
 }
 
 /** Which of `others` may `me` meet (friends, search, profiles, rankings)? Everybody reads as adult while the feature is off, so all may. */
@@ -55,10 +57,16 @@ export class AgeTrackService {
   ) {}
 
   async mine(userId: string): Promise<MyAgeTrack> {
-    if (!(await this.enabled())) return { enabled: false, track: 'adult', chosen: true, rules: trackRules('adult'), limits: null };
+    if (!(await this.enabled())) return { enabled: false, track: 'adult', chosen: true, rules: trackRules('adult'), limits: null, canRevert: false };
     const rec = await this.store.get(userId);
     const rules = trackRules(rec.track);
-    return { enabled: true, track: rec.track, chosen: rec.setAt !== null, rules, limits: rules.socialNeedsGuardian ? await this.limitsOf(userId) : null };
+    return { enabled: true, track: rec.track, chosen: rec.setAt !== null, rules, limits: rules.socialNeedsGuardian ? await this.limitsOf(userId) : null, canRevert: rec.track !== 'adult' && (await this.inGrace(userId, rec)) };
+  }
+
+  /** A fresh pick (inside `TRACK_MISPICK_GRACE_HOURS`) with no linked guardian: a child cannot use this to dodge a guardian's choice. */
+  private async inGrace(userId: string, rec: TrackRecord): Promise<boolean> {
+    if (rec.setAt === null || this.now().getTime() - rec.setAt.getTime() > TRACK_MISPICK_GRACE_HOURS * 3_600_000) return false;
+    return !(await this.hasGuardian(userId));
   }
 
   /**
@@ -132,12 +140,13 @@ export class AgeTrackService {
   }
 
   /**
-   * First pick: any track. Later: the same or a younger track is free; an older one needs a guardian (phase 2), so it is refused here.
+   * First pick: any track. Later: the same or a younger track is free; an older one needs a guardian (phase 2), so it is refused here,
+   * except within the grace window after a pick (see `inGrace`).
    */
   async choose(userId: string, track: AgeTrack): Promise<ChooseResult> {
     if (!(await this.enabled())) return { ok: false, error: 'feature_off' };
     const rec = await this.store.get(userId);
-    if (rec.setAt !== null && !canSelfSwitchTrack(rec.track, track)) return { ok: false, error: 'needs_guardian' };
+    if (rec.setAt !== null && !canSelfSwitchTrack(rec.track, track, await this.inGrace(userId, rec))) return { ok: false, error: 'needs_guardian' };
     await this.store.save(userId, track, this.now());
     this.audit?.('age_track.choose', userId, `${rec.setAt === null ? 'first' : rec.track}->${track}`);
     return { ok: true, mine: await this.mine(userId) };

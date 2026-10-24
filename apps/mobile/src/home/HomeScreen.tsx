@@ -92,7 +92,7 @@ interface Tile {
 /** The launch link (a tap on a push that started the app) is handled once per app launch, not on every return to Home. */
 let initialLinkHandled = false;
 
-export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { /** A shared private table link: open the table sheet on this code once. */ openTableCode?: string; onTableOpened?: () => void; onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
+export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview, onChangeTrack }: { /** Opens the «who is playing?» chooser again (shown while a wrong pick can still be undone). */ onChangeTrack?: () => void; /** A shared private table link: open the table sheet on this code once. */ openTableCode?: string; onTableOpened?: () => void; onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null; canRevert?: boolean } }) {
   const adult = useTheme() === 'adult';
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
@@ -358,6 +358,7 @@ export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, 
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{left.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
         </View>
 
+        {myTrack?.canRevert && onChangeTrack ? <Pressable accessibilityRole="button" onPress={onChangeTrack} hitSlop={10}><Text style={styles.revert}>{fa.ageTrack.revert}</Text></Pressable> : null}
         <View style={styles.buttons}>
           {/* Three modes side by side: icon above the label so each name fits on a narrow phone. */}
           <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} height={68} fontSize={priceOnlyOn ? 20 : 28} onPress={onSolo} />

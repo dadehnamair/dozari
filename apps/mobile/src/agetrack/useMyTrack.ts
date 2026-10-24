@@ -11,15 +11,15 @@ const REFRESH_MS = 30_000;
  * The player's track rules and the guardian's limits for this child. Both are `null` while loading, when the feature is off, or when a lookup fails,
  * and `null` limits mean "no limits": a failed lookup never hides anything. Re-read every minute.
  */
-export function useMyTrack(enabled: boolean): { rules: TrackRulesDto | null; limits: ChildLimits | null } {
-  const [state, setState] = useState<{ rules: TrackRulesDto | null; limits: ChildLimits | null }>({ rules: null, limits: null });
+export function useMyTrack(enabled: boolean): { rules: TrackRulesDto | null; limits: ChildLimits | null; canRevert: boolean } {
+  const [state, setState] = useState<{ rules: TrackRulesDto | null; limits: ChildLimits | null; canRevert: boolean }>({ rules: null, limits: null, canRevert: false });
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
     let isChild = false;
     const load = () =>
       fetchAgeTrack().then(
-        (mine) => alive && ((isChild = mine.enabled && mine.rules.socialNeedsGuardian), setState({ rules: mine.enabled ? mine.rules : null, limits: mine.enabled ? (mine.limits ?? null) : null })),
+        (mine) => alive && ((isChild = mine.enabled && mine.rules.socialNeedsGuardian), setState({ rules: mine.enabled ? mine.rules : null, limits: mine.enabled ? (mine.limits ?? null) : null, canRevert: mine.enabled && mine.canRevert === true })),
         () => undefined,
       );
     void load();

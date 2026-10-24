@@ -46,14 +46,15 @@ async function setup(enabled = true) {
 }
 
 describe('age track routes', () => {
-  it('asks once and remembers, and refuses moving older', async () => {
+  it('asks once, remembers, and lets a fresh pick be undone', async () => {
     const { app, headers } = await setup();
     expect((await app.inject({ method: 'GET', url: '/me/age-track', headers })).json()).toMatchObject({ enabled: true, chosen: false, track: 'adult' });
     const put = await app.inject({ method: 'PUT', url: '/me/age-track', headers, payload: { track: 'kid' } });
     expect(put.json()).toMatchObject({ track: 'kid', chosen: true, rules: { wordLesson: true, priceGuess: false } });
-    const older = await app.inject({ method: 'PUT', url: '/me/age-track', headers, payload: { track: 'teen' } });
-    expect(older.statusCode).toBe(403);
-    expect(older.json()).toEqual({ error: 'needs_guardian' });
+    // A fresh pick can still be undone (mis-pick grace); the refusal after the window is covered in agetrack.test.ts.
+    expect(put.json()).toMatchObject({ canRevert: true });
+    const back = await app.inject({ method: 'PUT', url: '/me/age-track', headers, payload: { track: 'teen' } });
+    expect(back.statusCode).toBe(200);
     expect((await app.inject({ method: 'PUT', url: '/me/age-track', headers, payload: { track: 'baby' } })).statusCode).toBe(400);
   });
 
