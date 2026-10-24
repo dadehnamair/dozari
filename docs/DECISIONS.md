@@ -853,3 +853,7 @@ Owner: bring players' app-store reviews onto the site. Default: the owner enters
 ## D-sms-pattern-per-type — pattern or plain, per OTP message type (2026-10-22)
 
 Owner request: some messages (login code etc.) must go out as irnoti pattern (template) messages. Each SMS type (`login`/`verify`/`delete`) now carries `{enabled, code, params}` in `app_settings` (`sms.pattern.<purpose>.*`), editable in the «پیامک» panel. `enabled` = pattern first, plain text as backup; off (default, unchanged behaviour) = plain first, pattern backup. Variables are `name=value` pairs where `{code}` is replaced by the OTP. Default: all types off; the backup pattern stays `IRNOTI_PATTERN_CODE`/`gdhsgcnt` with `{code: "{code}"}`.
+
+## D251 — Similar products flagged in the admin catalog (2026-10-24, proposed)
+
+Owner: the admin product list should show, with an icon, when a product has similar ones, and say how many, plus a filter. Default: two products are similar when their names match after normalizing ی/ک and dropping spaces, ZWNJ and punctuation, or when one name (4+ characters) is contained in the other; similarity chains into groups. The product card shows a «⧉ N محصول مشابه» badge (N counts the product itself) and the filter «دارای محصول مشابه» lists only grouped products, group by group. Client-side only, no API or DB change (`apps/server/src/admin/ui/views1.ts`).
