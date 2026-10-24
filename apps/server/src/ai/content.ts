@@ -63,7 +63,7 @@ export const productDraft = z.object({
   storyFa: z.string().trim().max(300).default(''),
   ageTrack: z.enum(AGE_TRACKS).default('adult'),
   /** Nominal prices in toman (integer), one per Solar Hijri year. Saved as `pending` points; an editor still approves them. */
-  prices: z.array(z.object({ year: z.number().int().min(1300).max(1450), priceToman: z.number().int().min(1).max(100_000_000_000) })).max(8).default([]),
+  prices: z.array(z.object({ year: z.number().int().min(1300).max(1450), priceToman: z.number().int().min(1).max(100_000_000_000) })).default([]),
 });
 export const lessonDraft = z.object({
   productId: z.string().min(1).max(36),
