@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FFF6E8;color:#2B1240}a{color:#A66BF0}a:hover{color:#FF4D8D}*{box-sizing:border-box}</style>
+</helmet>
+<div dir="rtl" style="max-width:1400px;margin:0 auto;padding:48px 32px 80px;display:flex;flex-direction:column;gap:32px">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:13px 'JetBrains Mono',monospace;color:#A66BF0;direction:ltr;text-align:right">Dozari · 24 New Product Icons · Item.dc.html</div>
+    <h1 style="margin:0;font:48px/1.1 Lalezar">پک آیکون محصولات جدید</h1>
+    <div style="display:flex;gap:10px;align-items:center;font:600 14px Vazirmatn"><span style="padding:1px 10px;border-radius:99px;background:#FFC93C;border:2px solid #2B1240;font:12px Lalezar">قبلی</span><span>= از آیکون‌های موجود استفاده شده</span></div>
+  </header>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="6">
+    <section style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="padding:2px 14px;border-radius:99px;background:{{ g.c }};border:2.5px solid #2B1240;font:20px Lalezar">{{ g.t }}</div><span style="font:12px 'JetBrains Mono',monospace;opacity:.6">{{ g.n }}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px">
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="12">
+          <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px 10px;border-radius:18px;background:#fff;border:2.5px solid #2B1240;box-shadow:0 4px 0 #2B1240">
+            <sc-if value="{{ it.old }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:6px;left:6px;padding:0 7px;border-radius:99px;background:#FFC93C;border:1.5px solid #2B1240;font:10px Lalezar">قبلی</span></sc-if>
+            <div style="width:60px;height:60px"><dc-import name="Item" icon="{{ it.k }}" hint-size="60px,60px" style="width:60px;height:60px"></dc-import></div>
+            <span style="font:800 13px Vazirmatn;text-align:center">{{ it.fa }}</span>
+            <span style="font:9px 'JetBrains Mono',monospace;opacity:.55;direction:ltr;text-align:center;word-break:break-all">{{ it.k }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const OLD='train-ticket bus-ticket ash-reshteh-kaseei fresh-cherries fresh-peaches fresh-strawberries cd-r-blank brick-game-console digital-compact-camera gaz-isfahan khorma-mazafati-bam khorma-mazafati pepsi-ghooti'.split(' ');
+const G=[
+['ابزار','#FFC93C','steel-claw-hammer:چکش,combination-pliers:انبردست,flathead-screwdriver:پیچ‌گوشتی دوسو,adjustable-wrench-ten-inch:آچار فرانسه,steel-tape-measure-three-meter:متر سه‌متری,hand-wood-saw:اره دستی,flat-metal-file:سوهان فلزکاری,spirit-level-forty-centimeter:تراز'],
+['موبایل و لوازم جانبی','#C9A3FF','nokia-6600:گوشی کلاسیک,sony-ericsson-k750i:گوشی دوربین‌دار,motorola-razr-v3:گوشی تاشو,samsung-galaxy-s2:گوشی هوشمند,power-bank-10000mah:پاوربانک,wired-mobile-earphones:هندزفری سیمی,silicone-phone-case:قاب سیلیکونی,car-mobile-charger:شارژر فندکی,irancell-recharge-card:کارت شارژ,micro-sd-memory-card:رم میکرو'],
+['کامپیوتر و الکترونیک','#8FDCFA','floppy-disk-3-5:دیسکت,cd-r-blank:سی‌دی خام,playstation-2-console:کنسول بازی,computer-mouse-ps2:ماوس توپی,adsl-modem:مودم,mp3-player-portable:ام‌پی‌تری پلیر,casio-scientific-calculator:ماشین‌حساب مهندسی,walkman-cassette-player:واکمن,brick-game-console:کنسول دستی,dvd-player-home:دی‌وی‌دی پلیر,cordless-phone-panasonic:تلفن بی‌سیم,digital-compact-camera:دوربین کامپکت,external-hard-drive:هارد اکسترنال,laptop-home-use:لپ‌تاپ'],
+['خودرو','#B8F08F','jian-car:ژیان,peugeot-205:هاچ‌بک کوچک,saipa-tiba-hatchback:هاچ‌بک سبز,saipa-quick:هاچ‌بک نارنجی,saipa-saina:سدان زرد,saipa-rana:سدان آبی,peugeot-pars:سدان نقره‌ای,renault-tondar-90:سدان باربند,samand-soren:سدان دودی,ikco-dena:سدان بنفش,mazda-pickup-2000:وانت,engine-oil-change:تعویض روغن,pride-tire:لاستیک,car-battery-60:باتری ماشین'],
+['سفر و حمل‌ونقل','#FFAA7A','train-ticket:بلیت قطار,bus-ticket:بلیت اتوبوس,flight-tehran-mashhad:بلیت هواپیما,tehran-karaj-freeway-toll:عوارض آزادراه,snapp-base-fare:تاکسی اینترنتی,public-telephone-token:ژتون تلفن'],
+['میوه و بقالی','#FF8FB6','fresh-cherries:گیلاس,fresh-sour-cherries:آلبالو,fresh-apricots:زردآلو,fresh-peaches:هلو,fresh-strawberries:توت‌فرنگی,fresh-persimmons:خرمالو,fresh-lettuce:کاهو,dry-lentils:عدس,lobia-chiti:لوبیا چیتی,khorma-mazafati:خرما,khorma-mazafati-bam:خرمای بم,konserv-tan-mahi:کنسرو ماهی,sosis-alman:سوسیس,kalbas-80-darsad:کالباس,pudr-jele:پودر ژله'],
+['غذا و تنقلات','#FFE48A','ash-reshteh-kaseei:آش رشته,kuku-sabzi:کوکو سبزی,labu-dastfurushi:لبو,faloodeh-shirazi:فالوده,lavashak:لواشک,tokhmeh-aftabgardan:تخمه آفتابگردان,tokhmeh-hendevaneh:تخمه هندوانه,zorat-bu-dadeh:ذرت بوداده,toot-khoshk:توت خشک,wafer-chocolate:ویفر شکلاتی,biscuit-petit-beurre:بیسکویت,koloocheh-sonati:کلوچه سنتی,nan-khamei:نان خامه‌ای,gaz-isfahan:گز,baslogh:باسلوق,ghotab-yazd:قطاب,naghl-nabat:نقل'],
+['نوشیدنی','#8FDCFA','delester-bottle:ماءالشعیر,pepsi-ghooti:نوشابه قوطی,nooshidani-energy-za:نوشیدنی انرژی‌زا,nescafe-3in1:قهوه ۳در۱,shir-moz:شیر موز,ab-havij-bastani:آب‌هویج بستنی,sharbat-khakshir:شربت خاکشیر,sharbat-sekanjebin:شربت سکنجبین,tokhm-sharbati:شربت تخم‌شربتی,araq-bahar-narenj:عرق بهارنارنج,araq-kasni:عرق کاسنی']];
+class Component extends DCLogic{renderVals(){return{groups:G.map(([t,c,s])=>{const items=s.split(',').map(x=>{const[k,fa]=x.split(':');return{k,fa,old:OLD.includes(k)};});return{t,c,items,n:items.length+' icons'};})};}}
+</script>
+</body>
+</html>
