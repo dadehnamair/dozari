@@ -7,6 +7,9 @@ export const DEFAULT_AGE_TRACK: AgeTrack = 'adult';
 /** Labels only: a player's track is chosen, never computed from these edges. */
 export const AGE_TRACK_EDGES = { kidMax: 11, teenMax: 17 } as const;
 
+/** A wrong pick can be undone to any track on one's own for this long after it was made, while no guardian is linked (docs/logic/age-tracks.md §Mis-pick). */
+export const TRACK_MISPICK_GRACE_HOURS = 24;
+
 /** Chat modes a guardian can pick for a child (docs/logic/age-tracks.md §Guardian panel). */
 export const CHAT_MODES = ['friends_text', 'phrases', 'off'] as const;
 export type ChatMode = (typeof CHAT_MODES)[number];

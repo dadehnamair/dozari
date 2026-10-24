@@ -155,6 +155,7 @@ step for social features.
   allow; every matchmaking queue entry **carries its track** and `DuelQueue.takePair/takeGroup` only ever pair or group entries of one track, so a kid can never be paired with an adult by a bug in one filter.
 - Bots in a band (`bots.md`) get the same band and a band-appropriate nickname list.
 - `GET /me/age-track` and `PUT /me/age-track {track}` (own track; the first pick is free, later the same or a younger track is free, an older one needs the guardian's confirmation through the guardian's session, answered `403 needs_guardian` until phase 2).
+  **Mis-pick grace (D252):** for `TRACK_MISPICK_GRACE_HOURS` (24) after the pick, and only while no guardian is linked, any track may be chosen again; `GET` carries `canRevert` and the app shows «اشتباه انتخاب کردم» on Home, which reopens the chooser.
 - `POST /guardian/children`, `POST /guardian/link-code`, `POST /guardian/children/:id/track|revoke`, `GET /guardian/children` (guardian-only).
 - Coins stay in `coin_ledger` only; a guardian cannot move coins to a child outside the existing gift path (D-wallet rules unchanged).
 

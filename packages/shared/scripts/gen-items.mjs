@@ -29,11 +29,22 @@ const productConsts = "const POR='#FF7A3D',SV='#D9DEE3',GL='#EAF8FF';\n";
 const newKeys = [...nBody.matchAll(/^'([^']+)':/gm)].map((m) => m[1]);
 body = body.replace(/\};\n$/, `${nBody.replace(/,?\s*$/, ',')}\n};\n`);
 const consts = item.slice(item.indexOf('const O='), start).replace(/\(x,y,r\)/, '(x: number,y: number,r: number)').replace(/\(x,y,rx,ry\)/, '(x: number,y: number,rx: number,ry: number)').replace(/\(x,y,w,h,r\)/, '(x: number,y: number,w: number,h: number,r: number)');
+// The designer's slug map lists some slugs twice (same value); a duplicate key in an object literal is a TS error.
+const dedupeKeys = (m) => JSON.stringify(new Function(`return ${m}`)()).replace(/"/g, "'");
 const typed = (t) =>
   t
   // builders added by the designer: type their parameters, and move the slug -> icon map out so it is exported, not unused
-  .replace('const CB={', "const CB: Record<'sedan' | 'hatch' | 'round' | 'van', [string, string]>={")
-  .replace('const CAR=(c,t,pre=[],post=[])=>({p:', 'const CAR=(c: string,t: keyof typeof CB,pre: Part[]=[],post: Part[]=[]): Icon=>({p: <Part[]>')
+  .replace('const CB={', "const CB: Record<string, [string, string]>={")
+  .replace('[...pre,[CB[t][0],c],[CB[t][1],', '[...pre,[CB[t]![0],c],[CB[t]![1],')
+  .replace('const CAR=(c,t,pre=[],post=[])=>({p:', 'const CAR=(c: string,t: string,pre: Part[]=[],post: Part[]=[]): Icon=>({p: <Part[]>')
+  .replace('const GRID=(x0,y0,nx,ny,dx,dy,w,h)=>', 'const GRID=(x0: number,y0: number,nx: number,ny: number,dx: number,dy: number,w: number,h: number)=>')
+  .replace('const SEED=(x,y)=>', 'const SEED=(x: number,y: number)=>')
+  .replace('const SEEDS=(c,ln)=>({p:', 'const SEEDS=(c: string,ln: string): Icon=>({p: <Part[]>')
+  .replace('const BOTTLE=(c,lab,cap,txt,tc)=>({p:', 'const BOTTLE=(c: string,lab: string,cap: string,txt: string,tc: string): Icon=>({p: <Part[]>')
+  .replace('const GLASS=(c,ex)=>({p:', 'const GLASS=(c: string,ex: Part[]): Icon=>({p: <Part[]>')
+  .replace('const ARAQ=(liq,emb)=>({p:', 'const ARAQ=(liq: string,emb: Part[]): Icon=>({p: <Part[]>')
+  .replace('const CAN=(c,b,ex)=>({p:', 'const CAN=(c: string,b: string,ex: Part[]): Icon=>({p: <Part[]>')
+  .replace('const PH=(body,scr,ex)=>({p:', 'const PH=(body: string,scr: string,ex: Part[]): Icon=>({p: <Part[]>')
   .replace('const BOWL=(c,top,extra)=>({p:', 'const BOWL=(c: string,top: string,extra: Part[]): Icon=>({p:')
   .replace('const TIX=(c,ex)=>({p:', 'const TIX=(c: string,ex: Part[]): Icon=>({p:')
   .replace('const PCB={', "const PCB: Record<'sedan' | 'hatch' | 'van', [string, string]>={")
@@ -44,7 +55,7 @@ const typed = (t) =>
   .replace('const PC=(x,y,c)=>', 'const PC=(x: number,y: number,c: string): Part[]=><Part[]>')
   .replace('const TK=(c,t1,t2,ex=[])=>({p:', 'const TK=(c: string,t1: string,t2: string,ex: Part[]=[]): Icon=>({p: <Part[]>')
   .replace("let PERF='';", "let PERF = '';")
-  .replace(/^const S=(\{.*\});$/m, 'export const SAMPLE_ICONS: Record<string, string> = $1;');
+  .replace(/^const S=(\{.*\});$/m, (_, m) => `export const SAMPLE_ICONS: Record<string, string> = ${dedupeKeys(m)};`);
 // A builder of the design file that no icon calls (the designer keeps some around) would be an unused const and fail the lint (max-warnings 0): drop
 // each single-line arrow builder whose name occurs once, repeating because dropping one can leave a helper it used unused.
 const pruneUnused = (t) => {
@@ -97,12 +108,12 @@ if (v3Start >= 0) {
 }
 groups.push({ id: 'product-v2', titleFa: 'محصولات ۲', color: '#B8F08F', icons: newKeys.map((k) => ({ key: k, fa: nameFa[k] ?? k })) });
 // Products v4 (docs/design/products/Dozari Products v4.dc.html): `G` lists the newest pack in 7 groups (`OLD` marks the ones reused from earlier packs).
-// Pushed first so each icon lands in the newest pack that lists it. Keys whose drawing is not in Item.dc.html yet are dropped by the filter below.
+// Pushed first so each icon lands in the newest pack that lists it. Each key is a product slug; Item.dc.html's `S` maps it to its icon key (a slug with no drawing is dropped by the filter below).
 const v4 = design('products/Dozari Products v4.dc.html');
 const v4Start = v4.indexOf('const G=[');
 if (v4Start >= 0) {
   const g4 = new Function(`${v4.slice(v4Start, v4.indexOf('class Component', v4Start))}; return G;`)();
-  for (const [t, c, s] of g4) groups.unshift({ id: `v4-${groups.length}`, titleFa: t, color: c, icons: s.split(',').map((x) => { const [k, fa] = x.split(':'); return { key: k, fa }; }) });
+  for (const [t, c, s] of g4) groups.unshift({ id: `v4-${groups.length}`, titleFa: t, color: c, icons: s.split(',').map((x) => { const [k, fa] = x.split(':'); return { key: slugIcon[k] ?? k, fa }; }) });
 }
 
 // The picker used to show all ~26 source groups as filters (overlapping, tiny, half of them "pack 2/3" dumps). Fold them into a few

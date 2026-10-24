@@ -53,7 +53,7 @@ The owner wants Android push to go through the IRNoti push service, not our own 
 - The IRNoti SDK is compiled only with `-Pdozari.irnoti=true` (module `background-notify`: `src/irnoti` has the real `IrnotiBridge`, `src/noIrnoti` a no-op one). It is off by default in Gradle (the `Android APK` workflow turns it on) because `com.github.irnoti:andriod-sdk:1.0.1` fails on JitPack (the repository has no `gradlew`); turn it on once IRNoti publishes a working version or an `.aar`.
 - Known: IRNoti notifications use the SDK's renderer (notify id from the message), so an event shown by both the push and the WorkManager check can appear twice. Not compiled or run (no Android SDK here); `compileSdk` must be 35+.
 
-## Web push through irnoti's browser SDK (D252, owner request 2026-10-24)
+## Web push through irnoti's browser SDK (D253, owner request 2026-10-24)
 
 The irnoti panel offers browser push (`push_provider=webpush`: `push.js`, `irnoti-sw.js`, a `pk_live_…` public key; the VAPID private key stays at irnoti, so our own `VAPID_*` keys cannot be swapped for it). The three values are typed in the admin panel (**ارتباط ← اعلان وب**), not in env:
 
