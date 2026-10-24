@@ -115,7 +115,7 @@
         });
         window.addEventListener('load', function () {
           navigator.serviceWorker
-            .register('/sw.js')
+            .register('/irnoti-sw.js')
             .then(function (reg) {
               var waitFor = function (sw) {
                 if (!sw) return;

@@ -26,6 +26,8 @@ import { isHttpUrl } from '../security/url-guard.js';
 import type { MessageCenter } from '../messages/service.js';
 import { SMS_PATTERN_MAX_PARAMS, SMS_PROVIDERS, renderSmsText } from '../phone/smsConfig.js';
 import type { SmsGateway } from '../phone/smsConfig.js';
+import { IRNOTI_WEB_APP_ID_RE, IRNOTI_WEB_PUBLIC_KEY_RE } from '../notify/irnoti-web.js';
+import type { IrnotiWebPush } from '../notify/irnoti-web.js';
 import { SMS_PURPOSES } from '../phone/sms.js';
 import type { NotifyService } from '../notify/service.js';
 import type { NotifyStore } from '../notify/store.js';
@@ -144,6 +146,8 @@ export interface AdminModules {
   messages?: MessageCenter;
   /** SMS provider, message texts and a test send. */
   sms?: SmsGateway;
+  /** Browser push through irnoti's web SDK: public key, app id and API key. */
+  irnotiWeb?: IrnotiWebPush;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
 }
@@ -438,6 +442,24 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!(await center.retract(p.data.id))) return reply.code(404).send({ error: 'message_not_found' });
       void audit('message.retract', p.data.id);
       return { ok: true };
+    });
+  }
+
+  if (m.irnotiWeb) {
+    const web = m.irnotiWeb;
+    const secret = z.string().trim().max(200).regex(/^[\x21-\x7e]*$/); // printable ASCII, no spaces
+    const body = z.object({
+      publicKey: z.union([z.literal(''), z.string().trim().regex(IRNOTI_WEB_PUBLIC_KEY_RE)]).optional(),
+      appId: z.union([z.literal(''), z.string().trim().regex(IRNOTI_WEB_APP_ID_RE)]).optional(),
+      apiKey: secret.optional(),
+    });
+    g.get('/admin/irnoti-web', async () => web.adminState());
+    g.put('/admin/irnoti-web', async (req, reply) => {
+      const b = body.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      await web.update(b.data);
+      void audit('irnoti_web.config', '-', ['publicKey', 'appId', 'apiKey'].filter((k) => k in b.data).join(','));
+      return web.adminState();
     });
   }
 
