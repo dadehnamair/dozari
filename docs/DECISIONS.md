@@ -857,3 +857,7 @@ Owner request: some messages (login code etc.) must go out as irnoti pattern (te
 ## D251 — Similar products flagged in the admin catalog (2026-10-24, proposed)
 
 Owner: the admin product list should show, with an icon, when a product has similar ones, and say how many, plus a filter. Default: two products are similar when their names match after normalizing ی/ک and dropping spaces, ZWNJ and punctuation, or when one name (4+ characters) is contained in the other; similarity chains into groups. The product card shows a «⧉ N محصول مشابه» badge (N counts the product itself) and the filter «دارای محصول مشابه» lists only grouped products, group by group. Client-side only, no API or DB change (`apps/server/src/admin/ui/views1.ts`).
+
+## D252 — A wrong age-track pick can be undone for 24 hours (2026-10-24, proposed)
+
+Owner: if someone picked the kid track by mistake they must be able to go back. This loosens D198's «an older track needs a guardian» rule only narrowly: within `TRACK_MISPICK_GRACE_HOURS` (24h, `config/ageTracks.ts`) after the pick, and only while no guardian is linked, the player may choose any track; after that, or once a guardian is linked, the old rule holds (`403 needs_guardian`). `GET /me/age-track` returns `canRevert`; Home shows a small «اشتباه انتخاب کردم؛ رده‌ام را عوض می‌کنم» link that reopens the chooser. Open question for the owner: is 24h right, and should a kid be able to claim adult at all inside it? Tune or remove by changing the constant.

@@ -199,30 +199,40 @@ function iconPicker(current, onPick) {
   var groups = (S.meta && S.meta.iconGroups) || [], have = (S.meta && S.meta.icons) || {};
   var faOf = {}, groupOf = {};
   groups.forEach(function (g) { g.icons.forEach(function (i) { faOf[i.key] = i.fa; groupOf[i.key] = g.id; }); });
-  var keys = Object.keys(have), cat = 'all';
+  var keys = Object.keys(have).filter(function (k) { return groupOf[k]; }), picked = {};
   var grid = h('div', { class: 'icon-pick' });
-  var chips = h('div', { class: 'chips', style: 'display:flex;flex-wrap:wrap;gap:6px' });
-  var q = h('input', { type: 'search', placeholder: 'جستجوی آیکن (فارسی یا انگلیسی)…' });
+  var chips = h('div', { class: 'icon-cats', role: 'group', 'aria-label': 'دسته‌بندی آیکن' });
+  var count = h('span', { class: 'icon-count' });
+  var q = h('input', { type: 'search', placeholder: 'جستجوی آیکن (فارسی یا انگلیسی)…', 'aria-label': 'جستجوی آیکن' });
+  /* Arabic and Persian letter variants, ZWNJ and case must not make a search miss. */
+  function norm(t) { return String(t || '').toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/\u200c/g, ' ').replace(/\s+/g, ' ').trim(); }
+  var haystack = {};
+  keys.forEach(function (k) { haystack[k] = norm(k + ' ' + (faOf[k] || '')); });
+  /* Several families can be on at once; with none on, every icon shows. */
   function drawChips() {
     clear(chips);
-    [{ id: 'all', titleFa: 'همه', n: keys.length }].concat(groups.map(function (g) { return { id: g.id, titleFa: g.titleFa, n: g.icons.length }; })).forEach(function (g) {
-      chips.appendChild(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(g.id === cat), text: g.titleFa + ' · ' + faNum(g.n), onclick: function () { cat = g.id; drawChips(); draw(); } }));
+    var any = Object.keys(picked).length > 0;
+    chips.appendChild(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(!any), onclick: function () { picked = {}; drawChips(); draw(); } }, ['همه', h('small', { text: faNum(keys.length) })]));
+    groups.forEach(function (g) {
+      chips.appendChild(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(!!picked[g.id]), onclick: function () { if (picked[g.id]) delete picked[g.id]; else picked[g.id] = true; drawChips(); draw(); } }, [h('i', { style: 'background:' + g.color }), g.titleFa, h('small', { text: faNum(g.icons.length) })]));
     });
   }
   function draw() {
     clear(grid);
-    var term = q.value.trim().toLowerCase();
-    keys.filter(function (k) {
-      if (cat !== 'all' && groupOf[k] !== cat) return false;
-      return !term || k.toLowerCase().indexOf(term) >= 0 || (faOf[k] || '').indexOf(term) >= 0;
-    }).forEach(function (k) {
-      grid.appendChild(h('button', { type: 'button', 'aria-pressed': String(k === current), title: k, onclick: function () { current = k; onPick(k); draw(); } }, [iconSvg(k, 40), h('span', { text: faOf[k] || k }), h('span', { class: 'ltr', text: k, style: 'opacity:.6' })]));
+    var term = norm(q.value), words = term ? term.split(' ') : [];
+    var list = keys.filter(function (k) {
+      var inCats = !Object.keys(picked).length || picked[groupOf[k]];
+      return inCats && words.every(function (w) { return haystack[k].indexOf(w) >= 0; });
     });
-    if (!grid.firstChild) grid.appendChild(h('div', { class: 'empty-state', text: 'آیکنی پیدا نشد' }));
+    list.forEach(function (k) {
+      grid.appendChild(h('button', { type: 'button', 'aria-pressed': String(k === current), title: k, onclick: function () { current = k; onPick(k); draw(); } }, [iconSvg(k, 40), h('span', { text: faOf[k] || k })]));
+    });
+    count.textContent = faNum(list.length) + ' آیکن';
+    if (!list.length) grid.appendChild(h('div', { class: 'empty-state', text: 'آیکنی پیدا نشد' }));
   }
   q.addEventListener('input', draw);
   drawChips(); draw();
-  return h('div', { style: 'display:flex;flex-direction:column;gap:8px' }, [q, chips, grid]);
+  return h('div', { class: 'icon-picker' }, [h('div', { class: 'icon-bar' }, [q, chips, count]), grid]);
 }
 function badge(text, cls) { return h('span', { class: 'badge ' + (cls || 'b-mute'), text: text }); }
 function field(label, input, hint) { return h('label', { class: 'f' }, [label, input, hint ? h('span', { class: 'h', text: hint, style: 'font-size:12px' }) : null]); }

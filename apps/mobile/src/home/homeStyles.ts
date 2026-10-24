@@ -45,6 +45,7 @@ export const styles = StyleSheet.create({
   spacer: { flex: 1 },
   hero: { width: 180, height: 197, marginBottom: 8 },
   heroCompact: { width: 130, height: 142 },
+  revert: { fontFamily: fonts.body, fontSize: 13, color: colors.ink, textAlign: 'center', textDecorationLine: 'underline', opacity: 0.8, paddingVertical: 4 },
   buttons: { flexDirection: RTL_ROW, gap: 12, paddingTop: 6 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   sheet: { width: '100%', maxWidth: 360, backgroundColor: 'rgba(60,30,90,0.92)', borderRadius: 30, padding: 4, gap: 10 },

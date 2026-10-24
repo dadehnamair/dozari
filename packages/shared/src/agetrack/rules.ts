@@ -68,10 +68,11 @@ export function trackRank(track: AgeTrack): number {
 }
 
 /**
- * May a player in `from` switch to `to` on their own? Same or younger: yes. Older: only through a guardian (a kid cannot promote themselves).
+ * May a player in `from` switch to `to` on their own? Same or younger: yes. Older: only through a guardian (a kid cannot promote themselves),
+ * except right after the first pick (`inGrace`), when a wrong choice may be undone.
  */
-export function canSelfSwitchTrack(from: AgeTrack, to: AgeTrack): boolean {
-  return trackRank(to) <= trackRank(from);
+export function canSelfSwitchTrack(from: AgeTrack, to: AgeTrack, inGrace = false): boolean {
+  return inGrace || trackRank(to) <= trackRank(from);
 }
 
 /** Can two players meet (queue, friends, duel, table)? Same track only; the family table is the guardian's own flow and does not call this. */
