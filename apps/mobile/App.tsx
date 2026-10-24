@@ -272,6 +272,7 @@ function AppInner() {
           features={homeFeatures}
           settings={config.raw}
           myTrack={myTrack}
+          onChangeTrack={() => setScreen('ageTrack')}
           onPreview={(t) => (setPreviewTrack(t), setScreen('solo'))}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />

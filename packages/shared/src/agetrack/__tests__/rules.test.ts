@@ -46,6 +46,7 @@ describe('track helpers', () => {
     expect(canSelfSwitchTrack('teen', 'teen')).toBe(true);
     expect(canSelfSwitchTrack('kid', 'teen')).toBe(false);
     expect(canSelfSwitchTrack('teen', 'adult')).toBe(false);
+    expect(canSelfSwitchTrack('kid', 'adult', true)).toBe(true); // inside the mis-pick grace window
   });
   it('lets only the same track meet', () => {
     expect(canMeet('kid', 'kid')).toBe(true);

@@ -30,13 +30,37 @@ describe('AgeTrackService', () => {
     expect(await svc.effective('u')).toBe('kid');
   });
 
-  it('lets a player move younger but needs a guardian to move older', async () => {
+  it('lets a player move younger but needs a guardian to move older once the grace window is over', async () => {
     const store = memoryStore();
-    const svc = new AgeTrackService(store, async () => true);
+    let now = new Date('2026-10-05T00:00:00Z');
+    const svc = new AgeTrackService(store, async () => true, () => now);
     await svc.choose('u', 'teen');
+    now = new Date('2026-10-07T00:00:00Z');
     expect(await svc.choose('u', 'kid')).toMatchObject({ ok: true });
+    now = new Date('2026-10-09T00:00:00Z');
     expect(await svc.choose('u', 'teen')).toEqual({ ok: false, error: 'needs_guardian' });
     expect(await svc.choose('u', 'adult')).toEqual({ ok: false, error: 'needs_guardian' });
     expect(store.rows.get('u')?.track).toBe('kid');
+  });
+
+  it('lets a wrong pick be undone to any track within the grace window, unless a guardian is linked', async () => {
+    const store = memoryStore();
+    let now = new Date('2026-10-05T00:00:00Z');
+    const svc = new AgeTrackService(store, async () => true, () => now);
+    const mine = async () => (await svc.mine('u')).canRevert;
+    expect(await mine()).toBe(false); // never asked
+    await svc.choose('u', 'kid');
+    expect(await mine()).toBe(true);
+    expect(await svc.choose('u', 'adult')).toMatchObject({ ok: true });
+    expect(await mine()).toBe(false); // adult has nothing to undo
+    await svc.choose('u', 'kid');
+    now = new Date('2026-10-06T01:00:00Z'); // 25 hours later
+    expect(await mine()).toBe(false);
+    expect(await svc.choose('u', 'adult')).toEqual({ ok: false, error: 'needs_guardian' });
+
+    const linked = new AgeTrackService(memoryStore(), async () => true, () => now, async () => true);
+    await linked.choose('c', 'kid');
+    expect((await linked.mine('c')).canRevert).toBe(false);
+    expect(await linked.choose('c', 'adult')).toEqual({ ok: false, error: 'needs_guardian' });
   });
 });

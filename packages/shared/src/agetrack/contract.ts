@@ -35,6 +35,8 @@ export const myAgeTrackSchema = z.object({
   rules: trackRulesSchema,
   /** The guardian's choices for this child; null when there are none. */
   limits: childLimitsSchema.nullable().optional(),
+  /** The pick was made recently and no guardian is linked: the player may still go back to any track (the app shows «اشتباه انتخاب کردم»). */
+  canRevert: z.boolean().optional(),
 });
 export type MyAgeTrackDto = z.infer<typeof myAgeTrackSchema>;
 
