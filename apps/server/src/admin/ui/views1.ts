@@ -75,7 +75,7 @@ VIEWS.dashboard = function (root) {
 };
 
 /* ---------------- catalog ---------------- */
-var CAT = { products: [], sim: {}, filter: 'all', q: '' };
+var CAT = { products: [], sim: {}, filter: 'all', q: '', group: null };
 function productHasApproved(p) { return p.prices.some(function (x) { return x.status === 'approved'; }); }
 function dateFa(m) { return fa(m.year) + (m.month ? '/' + fa(m.month) : ''); }
 function rangeText(p) {
@@ -107,7 +107,7 @@ VIEWS.catalog = function (root) {
   var FILTERS = [['all', 'همه'], ['noicon', 'بدون آیکن'], ['noprice', 'بدون قیمت تأییدشده'], ['few', 'قیمت کم (زیر حداقل)'], ['inactive', 'غیرفعال'], ['similar', 'دارای محصول مشابه'], ['kid', 'کالای کودک'], ['teen', 'کالای نوجوان']];
   function draw() {
     clear(chips);
-    FILTERS.forEach(function (f) { chips.appendChild(h('button', { class: 'chip', 'aria-pressed': String(CAT.filter === f[0]), text: f[1], onclick: function () { CAT.filter = f[0]; draw(); } })); });
+    FILTERS.forEach(function (f) { chips.appendChild(h('button', { class: 'chip', 'aria-pressed': String(CAT.filter === f[0]), text: f[1], onclick: function () { CAT.filter = f[0]; CAT.group = null; draw(); } })); });
     clear(list);
     var q = CAT.q.trim();
     var rows = CAT.products.filter(function (p) {
@@ -116,14 +116,21 @@ VIEWS.catalog = function (root) {
       if (CAT.filter === 'noprice') return !productHasApproved(p);
       if (CAT.filter === 'few') return p.needsMorePrices === true;
       if (CAT.filter === 'inactive') return p.isActive === false;
-      if (CAT.filter === 'similar') return CAT.sim[p.id] && CAT.sim[p.id].n > 1;
+      if (CAT.filter === 'similar') return CAT.sim[p.id] && CAT.sim[p.id].n > 1 && (!CAT.group || CAT.sim[p.id].gid === CAT.group);
       if (CAT.filter === 'kid' || CAT.filter === 'teen') return (p.ageTrack || 'adult') === CAT.filter;
       return true;
     });
     if (CAT.filter === 'similar') rows.sort(function (a, b) { var x = CAT.sim[a.id].gid, y = CAT.sim[b.id].gid; return x < y ? -1 : x > y ? 1 : 0; });
+    if (CAT.group && rows.length) chips.appendChild(h('button', { class: 'chip', 'aria-pressed': 'true', text: '✕ گروه «' + rows[0].nameFa + '»', onclick: function () { CAT.group = null; draw(); } }));
     if (!rows.length) list.appendChild(empty('محصولی پیدا نشد'));
     rows.forEach(function (p) {
       var sim = CAT.sim[p.id];
+      var simBadge = sim && sim.n > 1 ? badge('⧉ ' + fa(sim.n) + ' محصول مشابه', 'b-info') : null;
+      if (simBadge) {
+        simBadge.style.cursor = 'pointer';
+        simBadge.title = 'نمایش محصولات مشابه';
+        simBadge.addEventListener('click', function (e) { e.stopPropagation(); CAT.filter = 'similar'; CAT.group = sim.gid; CAT.q = ''; search.value = ''; draw(); });
+      }
       var approved = p.prices.filter(function (x) { return x.status === 'approved'; }).length;
       var pending = p.prices.filter(function (x) { return x.status === 'pending'; }).length;
       list.appendChild(h('div', { class: 'pcard', onclick: function () { editProduct(p); } }, [
@@ -134,7 +141,7 @@ VIEWS.catalog = function (root) {
           h('div', { class: 'm', text: rangeText(p) }),
           h('div', { style: 'margin-top:4px;display:flex;gap:4px;flex-wrap:wrap' }, [
             badge(fa(approved) + ' تأییدشده', approved ? 'b-ok' : 'b-warn'), p.needsMorePrices ? badge('قیمت بیشتر لازم است', 'b-warn') : null, pending ? badge(fa(pending) + ' در انتظار', 'b-info') : null, p.isActive === false ? badge('غیرفعال', 'b-bad') : null,
-            sim && sim.n > 1 ? badge('⧉ ' + fa(sim.n) + ' محصول مشابه', 'b-info') : null
+            simBadge
           ])
         ])
       ]));
