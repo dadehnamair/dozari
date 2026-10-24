@@ -131,6 +131,32 @@ VIEWS.sms = function (root) {
   root.appendChild(body);
   draw();
 };
+VIEWS.webpush = function (root) {
+  var body = h('div');
+  function draw() {
+    api('/admin/irnoti-web').then(function (r) {
+      clear(body);
+      if (r.status === 404) return body.appendChild(empty('بخش اعلان وب روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      var d = r.body;
+      body.appendChild(h('div', { class: 'grid' }, [statCard('وضعیت', d.active ? 'روشن' : 'خاموش', d.active ? 'اعلان وب از مسیر irnoti ارسال می‌شود' : 'هر سه مقدار (کلید عمومی، شناسه‌ی اپ، کلید API) باید پر باشد', d.active ? '#7ed957' : '#ff4d8d')]));
+      var pk = h('input', { type: 'text', dir: 'ltr', autocomplete: 'off', placeholder: 'pk_live_…' }); pk.value = d.publicKey;
+      var app = h('input', { type: 'text', dir: 'ltr', autocomplete: 'off', placeholder: 'شناسه‌ی عددی اپ وب‌پوش' }); app.value = d.appId;
+      var ak = h('input', { type: 'password', dir: 'ltr', autocomplete: 'off', placeholder: d.apiKeyMask ? d.apiKeyMask + (d.apiKeyFromEnv ? ' (از env)' : '') + ' — برای عوض‌کردن کلید تازه را بنویس' : 'کلید API با scope برابر broker.write' });
+      body.appendChild(card('وب‌پوش irnoti', 'پنل irnoti ← پروژه ← Push ← اپ وب‌پوش (push_provider=webpush). «کلید عمومی» همان pk_live_… است، «شناسه‌ی اپ» عدد آن اپ، و کلید API باید scope برابر broker.write داشته باشد (خالی‌گذاشتن = بدون تغییر؛ اگر خالی بماند و IRNOTI_API_KEY در env باشد، همان استفاده می‌شود). کلید API دوباره نمایش داده نمی‌شود. اگر این بخش روشن باشد، سایت اسکریپت irnoti را بارگذاری می‌کند و بازیکنی که اعلان را فعال کند به شناسه‌ی بازیکنش ثبت می‌شود.', [
+        h('div', { class: 'form-grid' }, [field('کلید عمومی (pk_live_…)', pk), field('شناسه‌ی اپ', app), field('کلید API', ak)]),
+        h('div', { class: 'toolbar' }, [h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () {
+          var patch = { publicKey: pk.value.trim(), appId: app.value.trim() };
+          if (ak.value.trim()) patch.apiKey = ak.value.trim();
+          api('/admin/irnoti-web', { method: 'PUT', body: patch }).then(function (x) { if (x.status === 400) return toast('کلید عمومی (pk_live_…) یا شناسه‌ی اپ (فقط عدد) درست نیست', true); if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); });
+        } }),
+        h('button', { class: 'btn bad sm', text: 'خاموش‌کردن (پاک‌کردن همه)', onclick: function () { if (confirm('کلیدها پاک شوند و اعلان وب irnoti خاموش شود؟')) api('/admin/irnoti-web', { method: 'PUT', body: { publicKey: '', appId: '', apiKey: '' } }).then(function (x) { if (!x.ok) return fail(x); toast('پاک شد'); draw(); }); } })])
+      ]));
+    });
+  }
+  root.appendChild(body);
+  draw();
+};
 var CH_FA = { in_app: 'صندوق داخل اپ', bale: 'بله', sms: 'پیامک', email: 'ایمیل', push: 'اعلان پوش' };
 var AUD_FA = { all: 'همه‌ی بزرگسال‌ها', bale_linked: 'بزرگسال‌های وصل‌شده به بله', user: 'یک بازیکن', kid: 'کودک‌ها', teen: 'نوجوان‌ها' };
 VIEWS.messages = function (root) {

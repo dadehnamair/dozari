@@ -113,6 +113,7 @@ Hosting rules for `dist/` (any static host; nginx shown):
 
 ```nginx
 location = /sw.js              { add_header Cache-Control "no-cache"; }          # releases must be seen
+location = /irnoti-sw.js       { add_header Cache-Control "no-cache"; }          # the worker the app registers (imports /sw.js)
 location = /manifest.webmanifest { types { application/manifest+json webmanifest; } add_header Cache-Control "no-cache"; }
 location /_expo/static/        { add_header Cache-Control "public, max-age=31536000, immutable"; }
 location /                     { try_files $uri /index.html; add_header Cache-Control "no-cache"; }

@@ -113,6 +113,7 @@ import { registerBaleRoutes } from './notify/routes.js';
 import { FcmService, createDbFcmTokenStore, createFcmSender, loadServiceAccount, registerFcmRoutes } from './notify/fcm.js';
 import { irnotiPushFromEnv, registerIrnotiPushRoutes } from './notify/irnoti-push.js';
 import type { IrnotiPushService } from './notify/irnoti-push.js';
+import { IrnotiWebPush, registerIrnotiWebRoutes } from './notify/irnoti-web.js';
 import { WebPushService, createDbPushSubStore, createVapidSender, registerWebPushRoutes } from './notify/webpush.js';
 import { MessageCenter } from './messages/service.js';
 import { createDbMessageStore } from './messages/store.js';
@@ -248,6 +249,8 @@ export interface ServerDeps {
   webPush?: WebPushService;
   fcm?: FcmService;
   irnotiPush?: IrnotiPushService;
+  /** Browser push through irnoti's web SDK; configured in the admin panel. */
+  irnotiWeb?: IrnotiWebPush;
   /** Mobile numbers (`/me/phone`); also required before Bale linking when the setting says so. */
   phone?: PhoneService;
   /** «ورود با شماره»: logged-out sign-in by SMS code (`/auth/phone/*`). */
@@ -449,7 +452,8 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.keepsakes) registerKeepsakeRoutes(app, deps.auth, deps.keepsakes);
   if (deps.auth && deps.webPush) registerWebPushRoutes(app, deps.auth, deps.webPush);
   if (deps.auth && deps.fcm) registerFcmRoutes(app, deps.auth, deps.fcm);
-  if (deps.auth && deps.irnotiPush) registerIrnotiPushRoutes(app, deps.auth);
+  if (deps.auth && (deps.irnotiPush || deps.irnotiWeb)) registerIrnotiPushRoutes(app, deps.auth);
+  if (deps.irnotiWeb) registerIrnotiWebRoutes(app, deps.irnotiWeb);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.social) {
     const social = deps.social;
@@ -609,12 +613,17 @@ if (isMainModule(import.meta.url)) {
   const irnotiPush = irnotiPushFromEnv(process.env) ?? undefined;
   console.info(`[irnoti-push] ${irnotiPush ? 'on' : 'off (set IRNOTI_PUSH_APP_ID and IRNOTI_API_KEY)'}`);
   const fcm = irnotiPush || !(db && fcmAccount) ? undefined : new FcmService(createDbFcmTokenStore(db), createFcmSender(fcmAccount));
-  if (notify && irnotiPush) notify.appPush = (id, kind, text) => irnotiPush.notify(id, { title: 'دوزاری', body: text, tag: kind });
-  if (webPush || fcm || irnotiPush) {
+  // irnoti browser SDK: public key, app id and API key come from the admin panel (the API key falls back to IRNOTI_API_KEY).
+  const irnotiWeb = db ? new IrnotiWebPush(createDbSettingsStore(db), process.env.IRNOTI_API_KEY || undefined, process.env.IRNOTI_BASE_URL || undefined) : undefined;
+  if (notify && (irnotiPush || irnotiWeb)) {
+    notify.appPush = (id, kind, text) => Promise.all([irnotiPush?.notify(id, { title: 'دوزاری', body: text, tag: kind }), irnotiWeb?.notify(id, { title: 'دوزاری', body: text, tag: kind })]);
+  }
+  if (webPush || fcm || irnotiPush || irnotiWeb) {
     notices.also = (id, n) => {
       void webPush?.notice(id, n).catch(() => undefined);
       void fcm?.notice(id, n).catch(() => undefined);
       void irnotiPush?.notice(id, n).catch(() => undefined);
+      void irnotiWeb?.notice(id, n).catch(() => undefined);
     };
   }
   // The SMS provider and message texts are edited in the admin panel (stored in app_settings); env vars are the fallback.
@@ -1095,7 +1104,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), usage: createDbUsageStats(db), groupStats: createDbGroupStats(db), bazaar: createBazaarMonitor({ token: process.env.BAZAAR_PISHKHAN_TOKEN }), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, workshop, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), usage: createDbUsageStats(db), groupStats: createDbGroupStats(db), bazaar: createBazaarMonitor({ token: process.env.BAZAAR_PISHKHAN_TOKEN }), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, workshop, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, irnotiWeb, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     groupMine: db ? createDbGroupMine(db) : undefined,
     realtime: Boolean(auth),
@@ -1212,6 +1221,7 @@ if (isMainModule(import.meta.url)) {
     webPush,
     fcm,
     irnotiPush,
+    irnotiWeb,
     notify,
     messages,
     social,

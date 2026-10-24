@@ -13,9 +13,21 @@ interface Reg {
   pushManager?: { subscribe: (o: { userVisibleOnly: boolean; applicationServerKey: Uint8Array }) => Promise<PushSubscriptionLike>; getSubscription: () => Promise<PushSubscriptionLike | null> };
   showNotification: (title: string, opts: { body: string; tag: string; icon: string; lang: string; dir: string }) => Promise<void>;
 }
+interface ScriptEl {
+  src: string;
+  async: boolean;
+  onload: () => void;
+  onerror: () => void;
+  setAttribute: (k: string, v: string) => void;
+}
+interface IrnotiPushApi {
+  subscribe: (o: { tags: Record<string, string> }) => unknown;
+  identify?: (externalId: string) => unknown;
+}
 interface Env {
+  IRNotiPush?: IrnotiPushApi;
+  document?: { visibilityState: string; createElement?: (tag: string) => unknown; head?: { appendChild: (el: unknown) => void } };
   Notification?: { permission: string; requestPermission: () => Promise<string> };
-  document?: { visibilityState: string };
   navigator?: { serviceWorker?: { ready: Promise<Reg> } };
 }
 const g = globalThis as unknown as Env;
@@ -46,6 +58,47 @@ export function showWebNotice(n: LiveNotice): void {
   void sw.ready.then((reg) => reg.showNotification(c.title, { body: c.body, tag: c.tag, icon: '/icon-192.png', lang: 'fa', dir: 'rtl' })).catch(() => undefined);
 }
 
+const IRNOTI_SDK = 'https://api.irnoti.com/v1/sdk/web/push.js';
+let irnotiLoaded: Promise<IrnotiPushApi | null> | null = null;
+
+/** Loads the irnoti browser SDK once, with the public key from the admin panel. Resolves null when it cannot load. */
+function loadIrnoti(publicKey: string): Promise<IrnotiPushApi | null> {
+  irnotiLoaded ??= new Promise((resolve) => {
+    const doc = g.document;
+    if (!doc?.createElement || !doc.head) return resolve(null);
+    const el = doc.createElement('script') as ScriptEl;
+    el.src = IRNOTI_SDK;
+    el.async = true;
+    el.setAttribute('data-key', publicKey);
+    el.onload = () => resolve(g.IRNotiPush ?? null);
+    el.onerror = () => resolve(null);
+    doc.head.appendChild(el);
+  });
+  return irnotiLoaded;
+}
+
+/**
+ * Web push through irnoti (admin panel → اعلان وب). Registers the browser with irnoti and links it to the player id, which is what the
+ * server addresses. Returns false when the route is off or the SDK is unavailable, so the caller falls back to our own VAPID push.
+ */
+async function syncIrnotiWeb(): Promise<boolean> {
+  try {
+    const cfg = (await callJson('/push/irnoti-web', 'GET')) as { publicKey?: string | null };
+    if (!cfg.publicKey) return false;
+    const api = await loadIrnoti(cfg.publicKey);
+    if (!api) return false;
+    await session.authed(async (token) => {
+      const r = (await callJson('/push/irnoti', 'GET', undefined, token)) as { externalId?: string };
+      if (!r.externalId) return;
+      api.subscribe({ tags: { app: 'dozari' } });
+      api.identify?.(r.externalId);
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Subscribes this browser to Web Push and tells the server (D232). This is what reaches an iPhone whose home-screen app is in the
  * background: iOS suspends the page, so only a push from the server can wake it. Needs permission already granted; silent on failure
@@ -56,6 +109,13 @@ export async function syncWebPush(): Promise<void> {
   try {
     const sw = g.navigator?.serviceWorker;
     const reg = sw ? await sw.ready : null;
+    // irnoti's browser SDK, when the admin has set it up, replaces our own VAPID subscription (otherwise one event would show twice).
+    if (await syncIrnotiWeb()) {
+      const old = await reg?.pushManager?.getSubscription();
+      const json = old?.toJSON() as { endpoint?: string } | undefined;
+      if (json?.endpoint) await session.authed(async (token) => void (await callJson('/push/unsubscribe', 'POST', { endpoint: json.endpoint }, token))).catch(() => undefined); // only forgets it on our server
+      return;
+    }
     if (!reg?.pushManager) return;
     const cfg = (await callJson('/push/config', 'GET')) as { publicKey?: string };
     if (!cfg.publicKey) return;

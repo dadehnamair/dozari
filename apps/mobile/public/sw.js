@@ -9,6 +9,14 @@
 const VERSION = 'dev';
 const PRECACHE = [];
 
+// irnoti browser SDK (docs/logic/web-notifications.md §Web push through irnoti): its worker code adds its own push handling. It lives on
+// another origin, so a failure (offline, blocked) must never stop the app shell worker from starting.
+try {
+  importScripts('https://api.irnoti.com/v1/sdk/web/sw.js');
+} catch (e) {
+  /* the SDK is optional */
+}
+
 const CACHE = 'dozari-' + VERSION;
 const SHELL = ['/', '/manifest-adult.webmanifest', '/icon-adult-192.png', '/icon-adult-512.png'];
 
@@ -43,7 +51,7 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname === '/sw.js') return;
+  if (url.pathname === '/sw.js' || url.pathname === '/irnoti-sw.js') return;
   // The Android file (and anything else under /download/) is a plain download: a navigation to it must never be cached as the app shell.
   if (url.pathname.startsWith('/download/')) return;
   if (url.pathname.startsWith('/_expo/static/') || url.pathname.startsWith('/assets/')) {
@@ -90,6 +98,8 @@ self.addEventListener('push', (event) => {
   } catch (e) {
     d = {};
   }
+  // A push made by irnoti is shown by its own SDK handler (payload carries `irn_*` keys); showing it here too would double it.
+  if (Object.keys(d).some((k) => k.indexOf('irn') === 0)) return;
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) =>
       self.registration.showNotification(d.title || 'دوزاری', {

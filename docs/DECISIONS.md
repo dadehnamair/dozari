@@ -858,6 +858,11 @@ Owner request: some messages (login code etc.) must go out as irnoti pattern (te
 
 Owner: the admin product list should show, with an icon, when a product has similar ones, and say how many, plus a filter. Default: two products are similar when their names match after normalizing ی/ک and dropping spaces, ZWNJ and punctuation, or when one name (4+ characters) is contained in the other; similarity chains into groups. The product card shows a «⧉ N محصول مشابه» badge (N counts the product itself) and the filter «دارای محصول مشابه» lists only grouped products, group by group. Client-side only, no API or DB change (`apps/server/src/admin/ui/views1.ts`).
 
+## D253 — Browser push through irnoti, keys set in the admin panel (2026-10-24, owner)
+
+Owner: use irnoti's web push (the panel's `push.js` + `irnoti-sw.js` + `pk_live_…`) for the PWA and enter the irnoti keys in the Dozari admin panel, not env. Implemented as the admin tab «اعلان وب» (public key, app id, API key → `app_settings`), the SDK loaded by `syncWebPush`, and a shared worker (`/irnoti-sw.js` imports `/sw.js`). Our own VAPID push stays as the fallback and is skipped per browser once irnoti is active. Details and the unverified SDK assumptions: `docs/logic/web-notifications.md`.
+
+
 ## D252 — A wrong age-track pick can be undone for 24 hours (2026-10-24, proposed)
 
 Owner: if someone picked the kid track by mistake they must be able to go back. This loosens D198's «an older track needs a guardian» rule only narrowly: within `TRACK_MISPICK_GRACE_HOURS` (24h, `config/ageTracks.ts`) after the pick, and only while no guardian is linked, the player may choose any track; after that, or once a guardian is linked, the old rule holds (`403 needs_guardian`). `GET /me/age-track` returns `canRevert`; Home shows a small «اشتباه انتخاب کردم؛ رده‌ام را عوض می‌کنم» link that reopens the chooser. Open question for the owner: is 24h right, and should a kid be able to claim adult at all inside it? Tune or remove by changing the constant.
