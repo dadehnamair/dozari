@@ -1,3 +1,4 @@
+import { stopWebPush } from '../notices/webNotify';
 import { session } from '../auth';
 import { callJson } from '../net/http';
 
@@ -11,4 +12,4 @@ export async function deleteMyAccount(code: string): Promise<void> {
   await session.forget();
 }
 
-export const signOutEverywhere = (): Promise<void> => session.authed(async (token) => void (await callJson('/me/sign-out-everywhere', 'POST', {}, token))).then(() => session.forget());
+export const signOutEverywhere = (): Promise<void> => session.authed(async (token) => void (await callJson('/me/sign-out-everywhere', 'POST', {}, token))).then(() => stopWebPush()).then(() => session.forget());

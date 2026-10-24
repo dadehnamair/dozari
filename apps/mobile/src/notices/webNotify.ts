@@ -23,6 +23,8 @@ interface ScriptEl {
 interface IrnotiPushApi {
   /** Asks for permission (already granted here), registers the browser with irnoti and links it to `externalId`. */
   subscribe: (o: { externalId?: string; tags?: Record<string, string> }) => Promise<{ deviceId: string }>;
+  /** Deletes the device at irnoti and the browser subscription (needs a prior `subscribe` in this browser). */
+  unsubscribe: () => Promise<unknown>;
 }
 interface Env {
   IRNotiPush?: IrnotiPushApi;
@@ -99,6 +101,18 @@ async function syncIrnotiWeb(): Promise<boolean> {
   } catch (e) {
     console.warn('[irnoti-web] subscribe failed, using our own web push', e);
     return false;
+  }
+}
+
+/**
+ * Signing out: drops the irnoti device so the next account on this browser is linked afresh instead of keeping the old player's id.
+ * Silent when the SDK was never loaded or the browser was never subscribed.
+ */
+export async function stopWebPush(): Promise<void> {
+  try {
+    await g.IRNotiPush?.unsubscribe();
+  } catch {
+    /* nothing to drop */
   }
 }
 

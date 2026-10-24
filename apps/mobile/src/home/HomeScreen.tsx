@@ -17,7 +17,8 @@ import { DmSheet } from '../chat/DmSheet';
 import { linkOfNotice, parseNoticeLink } from '../notices/deepLink';
 import type { NoticeLink } from '../notices/deepLink';
 import { connectNotices } from '../notices/connectNotices';
-import { showWebNotice, syncWebPush } from '../notices/webNotify';
+import { enableWebNotify, showWebNotice, syncWebPush, webNotifyState } from '../notices/webNotify';
+import type { WebNotifyState } from '../notices/webNotify';
 import { startBackgroundNotify } from '../notices/backgroundNotify';
 import { FriendRequestSheet } from '../notices/FriendRequestSheet';
 import { claimProfileTask } from '../social/profileTasksApi';
@@ -108,6 +109,8 @@ export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, 
   const coinFx = useCoinDelta(daily.status?.balance ?? null);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
+  // Browser notifications can only be asked for from a tap, so the home guide offers it while permission is still undecided.
+  const [webState, setWebState] = useState<WebNotifyState>(webNotifyState);
   const [shopOpen, setShopOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
   const [treasuryOpen, setTreasuryOpen] = useState(false);
@@ -344,6 +347,8 @@ export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, 
               <GuideBubble who={heroOf(gender, avatarKey)} text={fa.home.missionNudge(missionsReady)} onPress={() => setSettingsOpen(true)} />
             ) : nudge ? (
               <GuideBubble who={heroOf(gender, avatarKey)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
+            ) : webState === 'default' ? (
+              <GuideBubble who={heroOf(gender, avatarKey)} text={fa.webNotify.homeAsk} onPress={() => void enableWebNotify().then(setWebState)} />
             ) : null}
             {/* A touch on the character itself must not count as «a tap elsewhere» that closes the tip. */}
             <View onTouchStart={(e) => e.stopPropagation()}>
