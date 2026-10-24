@@ -237,7 +237,9 @@ tr.click { cursor:pointer; }
 .icon-bar { display:flex; flex-direction:column; gap:6px; }
 .icon-cats { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; }
 .icon-cats .chip { flex:none; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
-.icon-cats .chip small { font-size:11px; opacity:.7; font-weight:500; }
+.icon-cats .chip { padding:1px 10px; font-size:12px; }
+.icon-cats .chip i { width:8px; height:8px; border-radius:50%; flex:none; }
+.icon-cats .chip small { font-size:10px; opacity:.65; font-weight:500; }
 .icon-count { font-size:12px; color:var(--muted); }
 .icon-pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; max-height:46vh; overflow:auto; padding:2px; align-content:start; }
 .icon-pick button span { text-align:center; line-height:1.4; }
