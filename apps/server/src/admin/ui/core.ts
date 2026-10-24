@@ -199,33 +199,35 @@ function iconPicker(current, onPick) {
   var groups = (S.meta && S.meta.iconGroups) || [], have = (S.meta && S.meta.icons) || {};
   var faOf = {}, groupOf = {};
   groups.forEach(function (g) { g.icons.forEach(function (i) { faOf[i.key] = i.fa; groupOf[i.key] = g.id; }); });
-  var keys = Object.keys(have).filter(function (k) { return groupOf[k]; }), cat = 'all';
+  var keys = Object.keys(have).filter(function (k) { return groupOf[k]; }), picked = {};
   var grid = h('div', { class: 'icon-pick' });
   var chips = h('div', { class: 'icon-cats', role: 'group', 'aria-label': 'دسته‌بندی آیکن' });
   var count = h('span', { class: 'icon-count' });
-  var q = h('input', { type: 'search', placeholder: 'جستجو در همهٔ آیکن‌ها (فارسی یا انگلیسی)…', 'aria-label': 'جستجوی آیکن' });
+  var q = h('input', { type: 'search', placeholder: 'جستجوی آیکن (فارسی یا انگلیسی)…', 'aria-label': 'جستجوی آیکن' });
   /* Arabic and Persian letter variants, ZWNJ and case must not make a search miss. */
   function norm(t) { return String(t || '').toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/\u200c/g, ' ').replace(/\s+/g, ' ').trim(); }
   var haystack = {};
   keys.forEach(function (k) { haystack[k] = norm(k + ' ' + (faOf[k] || '')); });
+  /* Several families can be on at once; with none on, every icon shows. */
   function drawChips() {
     clear(chips);
-    [{ id: 'all', titleFa: 'همه', n: keys.length }].concat(groups.map(function (g) { return { id: g.id, titleFa: g.titleFa, n: g.icons.length }; })).forEach(function (g) {
-      chips.appendChild(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(g.id === cat), onclick: function () { cat = g.id; q.value = ''; drawChips(); draw(); } }, [g.titleFa, h('small', { text: faNum(g.n) })]));
+    var any = Object.keys(picked).length > 0;
+    chips.appendChild(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(!any), onclick: function () { picked = {}; drawChips(); draw(); } }, ['همه', h('small', { text: faNum(keys.length) })]));
+    groups.forEach(function (g) {
+      chips.appendChild(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(!!picked[g.id]), onclick: function () { if (picked[g.id]) delete picked[g.id]; else picked[g.id] = true; drawChips(); draw(); } }, [h('i', { style: 'background:' + g.color }), g.titleFa, h('small', { text: faNum(g.icons.length) })]));
     });
   }
   function draw() {
     clear(grid);
     var term = norm(q.value), words = term ? term.split(' ') : [];
-    /* a search looks through every category, so the user never has to guess which one holds the icon */
     var list = keys.filter(function (k) {
-      if (!words.length) return cat === 'all' || groupOf[k] === cat;
-      return words.every(function (w) { return haystack[k].indexOf(w) >= 0; });
+      var inCats = !Object.keys(picked).length || picked[groupOf[k]];
+      return inCats && words.every(function (w) { return haystack[k].indexOf(w) >= 0; });
     });
     list.forEach(function (k) {
       grid.appendChild(h('button', { type: 'button', 'aria-pressed': String(k === current), title: k, onclick: function () { current = k; onPick(k); draw(); } }, [iconSvg(k, 40), h('span', { text: faOf[k] || k })]));
     });
-    count.textContent = faNum(list.length) + ' آیکن' + (words.length ? ' در همهٔ دسته‌ها' : '');
+    count.textContent = faNum(list.length) + ' آیکن';
     if (!list.length) grid.appendChild(h('div', { class: 'empty-state', text: 'آیکنی پیدا نشد' }));
   }
   q.addEventListener('input', draw);
