@@ -21,8 +21,8 @@ interface ScriptEl {
   setAttribute: (k: string, v: string) => void;
 }
 interface IrnotiPushApi {
-  subscribe: (o: { tags: Record<string, string> }) => unknown;
-  identify?: (externalId: string) => unknown;
+  /** Asks for permission (already granted here), registers the browser with irnoti and links it to `externalId`. */
+  subscribe: (o: { externalId?: string; tags?: Record<string, string> }) => Promise<{ deviceId: string }>;
 }
 interface Env {
   IRNotiPush?: IrnotiPushApi;
@@ -87,14 +87,17 @@ async function syncIrnotiWeb(): Promise<boolean> {
     if (!cfg.publicKey) return false;
     const api = await loadIrnoti(cfg.publicKey);
     if (!api) return false;
+    let linked = false;
     await session.authed(async (token) => {
       const r = (await callJson('/push/irnoti', 'GET', undefined, token)) as { externalId?: string };
       if (!r.externalId) return;
-      api.subscribe({ tags: { app: 'dozari' } });
-      api.identify?.(r.externalId);
+      // The SDK's `identify` takes a profile, not an id: the player id goes in as `externalId` of `subscribe` (that is what the server sends to).
+      await api.subscribe({ externalId: r.externalId, tags: { app: 'dozari' } });
+      linked = true;
     });
-    return true;
-  } catch {
+    return linked;
+  } catch (e) {
+    console.warn('[irnoti-web] subscribe failed, using our own web push', e);
     return false;
   }
 }
