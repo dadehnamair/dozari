@@ -194,6 +194,22 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
   "color": "#FF8FB6",
   "icons": [
    {
+    "key": "persimmon",
+    "fa": "خرمالو"
+   },
+   {
+    "key": "lentils",
+    "fa": "عدس"
+   },
+   {
+    "key": "pintoBeans",
+    "fa": "لوبیا چیتی"
+   },
+   {
+    "key": "dates",
+    "fa": "خرما"
+   },
+   {
     "key": "pomegranate",
     "fa": "انار"
    },
@@ -218,14 +234,6 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
     "fa": "انگور"
    },
    {
-    "key": "cherry",
-    "fa": "گیلاس"
-   },
-   {
-    "key": "strawberry",
-    "fa": "توت‌فرنگی"
-   },
-   {
     "key": "orange",
     "fa": "پرتقال"
    },
@@ -238,16 +246,8 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
     "fa": "موز"
    },
    {
-    "key": "peach",
-    "fa": "هلو"
-   },
-   {
     "key": "fig",
     "fa": "انجیر"
-   },
-   {
-    "key": "dates",
-    "fa": "خرما"
    },
    {
     "key": "walnut",
@@ -316,6 +316,38 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
   "titleFa": "بقالی و نان",
   "color": "#FFAA7A",
   "icons": [
+   {
+    "key": "cherry",
+    "fa": "گیلاس"
+   },
+   {
+    "key": "sourCherry",
+    "fa": "آلبالو"
+   },
+   {
+    "key": "apricot",
+    "fa": "زردآلو"
+   },
+   {
+    "key": "peach",
+    "fa": "هلو"
+   },
+   {
+    "key": "strawberry",
+    "fa": "توت‌فرنگی"
+   },
+   {
+    "key": "lettuce",
+    "fa": "کاهو"
+   },
+   {
+    "key": "tondar",
+    "fa": "سدان باربند"
+   },
+   {
+    "key": "powerBank",
+    "fa": "پاوربانک"
+   },
    {
     "key": "saffron",
     "fa": "زعفران"
@@ -444,6 +476,62 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
   "color": "#FFE48A",
   "icons": [
    {
+    "key": "lavashak",
+    "fa": "لواشک"
+   },
+   {
+    "key": "sunflowerSeeds",
+    "fa": "تخمه آفتابگردان"
+   },
+   {
+    "key": "melonSeeds",
+    "fa": "تخمه هندوانه"
+   },
+   {
+    "key": "popcorn",
+    "fa": "ذرت بوداده"
+   },
+   {
+    "key": "driedMulberry",
+    "fa": "توت خشک"
+   },
+   {
+    "key": "wafer",
+    "fa": "ویفر شکلاتی"
+   },
+   {
+    "key": "biscuit",
+    "fa": "بیسکویت"
+   },
+   {
+    "key": "koloocheh",
+    "fa": "کلوچه سنتی"
+   },
+   {
+    "key": "creamPuff",
+    "fa": "نان خامه‌ای"
+   },
+   {
+    "key": "gaz",
+    "fa": "گز"
+   },
+   {
+    "key": "baslogh",
+    "fa": "باسلوق"
+   },
+   {
+    "key": "ghotab",
+    "fa": "قطاب"
+   },
+   {
+    "key": "naghl",
+    "fa": "نقل"
+   },
+   {
+    "key": "jellyPowder",
+    "fa": "پودر ژله"
+   },
+   {
     "key": "pashmak",
     "fa": "پشمک"
    },
@@ -470,10 +558,6 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
    {
     "key": "candy",
     "fa": "آبنبات"
-   },
-   {
-    "key": "gaz",
-    "fa": "گز"
    },
    {
     "key": "baklava",
@@ -547,6 +631,34 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
   "color": "#F5B97A",
   "icons": [
    {
+    "key": "ash",
+    "fa": "آش رشته"
+   },
+   {
+    "key": "kukuSabzi",
+    "fa": "کوکو سبزی"
+   },
+   {
+    "key": "beetroot",
+    "fa": "لبو"
+   },
+   {
+    "key": "faloodeh",
+    "fa": "فالوده"
+   },
+   {
+    "key": "tunaCan",
+    "fa": "کنسرو ماهی"
+   },
+   {
+    "key": "sausage",
+    "fa": "سوسیس"
+   },
+   {
+    "key": "coldCut",
+    "fa": "کالباس"
+   },
+   {
     "key": "kebab",
     "fa": "کباب"
    },
@@ -573,10 +685,6 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
    {
     "key": "dizi",
     "fa": "دیزی سنگی"
-   },
-   {
-    "key": "ash",
-    "fa": "آش رشته"
    },
    {
     "key": "halim",
@@ -622,6 +730,50 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
   "color": "#8FDCFA",
   "icons": [
    {
+    "key": "maltDrink",
+    "fa": "ماءالشعیر"
+   },
+   {
+    "key": "soda",
+    "fa": "نوشابه قوطی"
+   },
+   {
+    "key": "energyDrink",
+    "fa": "نوشیدنی انرژی‌زا"
+   },
+   {
+    "key": "coffeeSachet",
+    "fa": "قهوه ۳در۱"
+   },
+   {
+    "key": "bananaMilk",
+    "fa": "شیر موز"
+   },
+   {
+    "key": "carrotFloat",
+    "fa": "آب‌هویج بستنی"
+   },
+   {
+    "key": "khakshir",
+    "fa": "شربت خاکشیر"
+   },
+   {
+    "key": "sekanjebin",
+    "fa": "شربت سکنجبین"
+   },
+   {
+    "key": "basilSeedDrink",
+    "fa": "شربت تخم‌شربتی"
+   },
+   {
+    "key": "araqBahar",
+    "fa": "عرق بهارنارنج"
+   },
+   {
+    "key": "araqKasni",
+    "fa": "عرق کاسنی"
+   },
+   {
     "key": "milk",
     "fa": "شیر"
    },
@@ -636,10 +788,6 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
    {
     "key": "juice",
     "fa": "آبمیوه"
-   },
-   {
-    "key": "soda",
-    "fa": "نوشابه"
    },
    {
     "key": "water",
@@ -701,16 +849,84 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
   "color": "#B8F08F",
   "icons": [
    {
-    "key": "public-telephone-token",
+    "key": "train",
+    "fa": "بلیت قطار"
+   },
+   {
+    "key": "busTicket",
+    "fa": "بلیت اتوبوس"
+   },
+   {
+    "key": "planeTicket",
+    "fa": "بلیت هواپیما"
+   },
+   {
+    "key": "toll",
+    "fa": "عوارض آزادراه"
+   },
+   {
+    "key": "rideApp",
+    "fa": "تاکسی اینترنتی"
+   },
+   {
+    "key": "phoneToken",
     "fa": "ژتون تلفن"
+   },
+   {
+    "key": "jian",
+    "fa": "ژیان"
+   },
+   {
+    "key": "p205",
+    "fa": "هاچ‌بک کوچک"
+   },
+   {
+    "key": "tiba",
+    "fa": "هاچ‌بک سبز"
+   },
+   {
+    "key": "quick",
+    "fa": "هاچ‌بک نارنجی"
+   },
+   {
+    "key": "saina",
+    "fa": "سدان زرد"
+   },
+   {
+    "key": "rana",
+    "fa": "سدان آبی"
+   },
+   {
+    "key": "pars",
+    "fa": "سدان نقره‌ای"
+   },
+   {
+    "key": "soren",
+    "fa": "سدان دودی"
+   },
+   {
+    "key": "dena",
+    "fa": "سدان بنفش"
+   },
+   {
+    "key": "pickup",
+    "fa": "وانت"
+   },
+   {
+    "key": "oilChange",
+    "fa": "تعویض روغن"
+   },
+   {
+    "key": "tire",
+    "fa": "لاستیک"
+   },
+   {
+    "key": "carBattery",
+    "fa": "باتری ماشین"
    },
    {
     "key": "peykanJ",
     "fa": "پیکان جوانان"
-   },
-   {
-    "key": "busTicket",
-    "fa": "بلیت اتوبوس شهری"
    },
    {
     "key": "metroTicket",
@@ -731,10 +947,6 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
    {
     "key": "bus",
     "fa": "اتوبوس تهران–شیراز"
-   },
-   {
-    "key": "train",
-    "fa": "قطار تهران–مشهد"
    },
    {
     "key": "peykan",
@@ -781,6 +993,10 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
     "fa": "کرایه مینی‌بوس"
    },
    {
+    "key": "public-telephone-token",
+    "fa": "ژتون تلفن عمومی"
+   },
+   {
     "key": "paykan-carluxe",
     "fa": "سواری پیکان کارلوکس"
    },
@@ -815,6 +1031,90 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
   "titleFa": "برقی و دیجیتال",
   "color": "#C9A3FF",
   "icons": [
+   {
+    "key": "floppy",
+    "fa": "دیسکت"
+   },
+   {
+    "key": "ps2",
+    "fa": "کنسول بازی"
+   },
+   {
+    "key": "ballMouse",
+    "fa": "ماوس توپی"
+   },
+   {
+    "key": "modem",
+    "fa": "مودم"
+   },
+   {
+    "key": "mp3Player",
+    "fa": "ام‌پی‌تری پلیر"
+   },
+   {
+    "key": "calculator",
+    "fa": "ماشین‌حساب مهندسی"
+   },
+   {
+    "key": "walkman",
+    "fa": "واکمن"
+   },
+   {
+    "key": "dvdPlayer",
+    "fa": "دی‌وی‌دی پلیر"
+   },
+   {
+    "key": "cordlessPhone",
+    "fa": "تلفن بی‌سیم"
+   },
+   {
+    "key": "camera",
+    "fa": "دوربین کامپکت"
+   },
+   {
+    "key": "externalHDD",
+    "fa": "هارد اکسترنال"
+   },
+   {
+    "key": "laptop",
+    "fa": "لپ‌تاپ"
+   },
+   {
+    "key": "ovalPhone",
+    "fa": "گوشی کلاسیک"
+   },
+   {
+    "key": "cameraPhone",
+    "fa": "گوشی دوربین‌دار"
+   },
+   {
+    "key": "flipPhone",
+    "fa": "گوشی تاشو"
+   },
+   {
+    "key": "smartphone",
+    "fa": "گوشی هوشمند"
+   },
+   {
+    "key": "earphones",
+    "fa": "هندزفری سیمی"
+   },
+   {
+    "key": "phoneCase",
+    "fa": "قاب سیلیکونی"
+   },
+   {
+    "key": "carCharger",
+    "fa": "شارژر فندکی"
+   },
+   {
+    "key": "rechargeCard",
+    "fa": "کارت شارژ"
+   },
+   {
+    "key": "microSD",
+    "fa": "رم میکرو"
+   },
    {
     "key": "tv",
     "fa": "تلویزیون ۲۱ اینچ"
@@ -866,6 +1166,45 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
    {
     "key": "dialup-internet-monthly",
     "fa": "اشتراک اینترنت دیال‌آپ ماهانه (شبانه)"
+   }
+  ]
+ },
+ {
+  "id": "tools",
+  "titleFa": "ابزار",
+  "color": "#D9C7A5",
+  "icons": [
+   {
+    "key": "hammer",
+    "fa": "چکش"
+   },
+   {
+    "key": "pliers",
+    "fa": "انبردست"
+   },
+   {
+    "key": "screwdriver",
+    "fa": "پیچ‌گوشتی دوسو"
+   },
+   {
+    "key": "wrench",
+    "fa": "آچار فرانسه"
+   },
+   {
+    "key": "tapeMeasure",
+    "fa": "متر سه‌متری"
+   },
+   {
+    "key": "handSaw",
+    "fa": "اره دستی"
+   },
+   {
+    "key": "metalFile",
+    "fa": "سوهان فلزکاری"
+   },
+   {
+    "key": "spiritLevel",
+    "fa": "تراز"
    }
   ]
  },
@@ -1057,14 +1396,6 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
    {
     "key": "capsule-gaz-11kg",
     "fa": "کپسول گاز مایع ۱۱ کیلویی پرسی‌گاز"
-   },
-   {
-    "key": "briefcase",
-    "fa": "کیف اداری"
-   },
-   {
-    "key": "leaf",
-    "fa": "برگ"
    }
   ]
  },
@@ -1185,6 +1516,14 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
   "color": "#FFB86B",
   "icons": [
    {
+    "key": "cd",
+    "fa": "سی‌دی خام"
+   },
+   {
+    "key": "handheld",
+    "fa": "کنسول دستی"
+   },
+   {
     "key": "cassette",
     "fa": "نوار کاست"
    },
@@ -1215,10 +1554,6 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
    {
     "key": "pencil",
     "fa": "مداد"
-   },
-   {
-    "key": "camera",
-    "fa": "دوربین"
    },
    {
     "key": "headphones",
@@ -1265,16 +1600,8 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
     "fa": "چرخ خرید"
    },
    {
-    "key": "cd",
-    "fa": "سی‌دی بازی"
-   },
-   {
     "key": "atari",
     "fa": "آتاری"
-   },
-   {
-    "key": "handheld",
-    "fa": "بازی‌ماشین"
    },
    {
     "key": "filmRoll",
