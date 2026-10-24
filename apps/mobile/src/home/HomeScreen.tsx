@@ -98,7 +98,11 @@ export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, 
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
-  const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, xpFrac, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
+  // The server refuses what a kid/teen track lacks (403 age_track), so those calls wait for the rules and are skipped when the rules say no.
+  const rules = myTrack?.rules ?? null;
+  const rulesPending = settings['feature.age_tracks'] === 1 && !rules;
+  const dailyAllowed = features.daily && !rulesPending && rules?.dailyPuzzle !== false;
+  const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, xpFrac, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData({ ...features, daily: dailyAllowed });
   const hero = useHeroMotion();
   /** Wins and losses since Home was last drawn: the coin counter counts to the new balance and a «+N» / «−N» chip floats by. */
   const coinFx = useCoinDelta(daily.status?.balance ?? null);
@@ -109,7 +113,7 @@ export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, 
   const [treasuryOpen, setTreasuryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [tournamentOpen, setTournamentOpen] = useState(false);
-  const turn = useTournamentTurn(features.tournament && myTrack?.rules?.tournaments !== false, onDuelResume);
+  const turn = useTournamentTurn(features.tournament && !rulesPending && rules?.tournaments !== false, onDuelResume);
   const [tableOpen, setTableOpen] = useState(false);
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
   // A shared table link (docs/logic/group-game.md §Table card): open the table straight on its code, once.
@@ -240,7 +244,7 @@ export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, 
     ...(features.shop ? [{ key: 'treasury', icon: 'puzzle' as const, label: h.treasury, color: colors.candy.yellow, onPress: () => setTreasuryOpen(true) }] : []),
   ];
 
-  const dailyOpenForPlay = features.daily && onDaily && dailyPuzzle && (dailyPuzzle.state === 'available' || dailyPuzzle.state === 'playing');
+  const dailyOpenForPlay = dailyAllowed && onDaily && dailyPuzzle && (dailyPuzzle.state === 'available' || dailyPuzzle.state === 'playing');
   const bubble = dailyOpenForPlay ? (dailyPuzzle.state === 'playing' ? h.dailyPlaying : h.dailyReady) : `${fa.months[month - 1]?.name ?? ''} · ${fa.months[month - 1]?.mood ?? ''}`;
   // New players sit out the live duel until `duel.min_level` (the server enforces it too): the button stays, with a lock and an explanation.
   const contact = typeof settings['sponsor.contact_url'] === 'string' ? settings['sponsor.contact_url'].trim() : '';
@@ -254,7 +258,7 @@ export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, 
       ? { label: h.duel, color: duelLocked ? colors.candy.grape : colors.candy.orange, badge: undefined, onPress: openDuel }
       : null;
 
-  const priceOnlyOn = features.priceonly && !!onPriceOnly;
+  const priceOnlyOn = features.priceonly && !!onPriceOnly && rules?.priceOnly !== false;
   const triviaOn = features.trivia && !!onTrivia;
   const triviaDuelOn = features.triviaduel && !!onTriviaDuel;
   // The question workshop card shows the live reward and how many questions wait for this player's review; absent when the server refuses (age track, switch).
@@ -374,7 +378,7 @@ export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, 
       {hubOpen ? (
         <CityHub
           onClose={() => setHubOpen(false)}
-          features={{ daily: features.daily && !!onDaily, duel: features.duel && !!onDuel, tournament: features.tournament }}
+          features={{ daily: dailyAllowed && !!onDaily, duel: features.duel && !!onDuel, tournament: features.tournament }}
           dailyReady={!!dailyOpenForPlay}
           onEnter={(a) => {
             setHubOpen(false);
