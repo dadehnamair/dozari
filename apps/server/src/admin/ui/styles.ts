@@ -233,7 +233,14 @@ tr.click { cursor:pointer; }
 .palette .it[aria-selected=true] { background:var(--brand-soft); color:var(--brand); }
 .palette .it svg { width:17px; height:17px; flex:none; opacity:.75; } .palette .it small { margin-inline-start:auto; color:var(--muted); }
 .palette .hint { padding:8px 16px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; background:var(--surface2); display:flex; gap:14px; }
-.icon-pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:8px; max-height:46vh; overflow:auto; padding:2px; }
+.icon-picker { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.icon-bar { display:flex; flex-direction:column; gap:6px; }
+.icon-cats { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; }
+.icon-cats .chip { flex:none; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
+.icon-cats .chip small { font-size:11px; opacity:.7; font-weight:500; }
+.icon-count { font-size:12px; color:var(--muted); }
+.icon-pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; max-height:46vh; overflow:auto; padding:2px; align-content:start; }
+.icon-pick button span { text-align:center; line-height:1.4; }
 .icon-pick button { background:var(--surface2); border:2px solid var(--line); border-radius:12px; padding:6px 4px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:11px; color:var(--muted); }
 .icon-pick button:hover, .icon-pick button[aria-pressed=true] { border-color:var(--brand); color:var(--ink); } .icon-pick svg { width:40px; height:40px; }
 .toast-area { position:fixed; inset-inline-start:18px; bottom:18px; z-index:80; display:flex; flex-direction:column; gap:8px; }
