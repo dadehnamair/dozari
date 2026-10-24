@@ -615,6 +615,7 @@ if (isMainModule(import.meta.url)) {
   const fcm = irnotiPush || !(db && fcmAccount) ? undefined : new FcmService(createDbFcmTokenStore(db), createFcmSender(fcmAccount));
   // irnoti browser SDK: public key, app id and API key come from the admin panel (the API key falls back to IRNOTI_API_KEY).
   const irnotiWeb = db ? new IrnotiWebPush(createDbSettingsStore(db), process.env.IRNOTI_API_KEY || undefined, process.env.IRNOTI_BASE_URL || undefined) : undefined;
+  await irnotiWeb?.refresh();
   if (notify && (irnotiPush || irnotiWeb)) {
     notify.appPush = (id, kind, text) => Promise.all([irnotiPush?.notify(id, { title: 'دوزاری', body: text, tag: kind }), irnotiWeb?.notify(id, { title: 'دوزاری', body: text, tag: kind })]);
   }
@@ -678,7 +679,16 @@ if (isMainModule(import.meta.url)) {
         async (id) => (await leaves?.status(id))?.badgeUntil ?? null,
       )
     : undefined;
-  const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null, smsGateway ?? null) : undefined;
+  // Admin broadcasts on the push channel go out through irnoti: the Android app route and/or the browser route.
+  const adminPush = irnotiPush || irnotiWeb
+    ? {
+        get configured() {
+          return !!irnotiPush || irnotiWeb?.configured === true;
+        },
+        notify: async (id: string, p: { title: string; body: string; tag: string }) => (await Promise.all([irnotiPush?.notify(id, p), irnotiWeb?.notify(id, p)])).some(Boolean),
+      }
+    : null;
+  const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null, smsGateway ?? null, adminPush) : undefined;
   if (messages) {
     // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
     messages.onDelivered = (ids) => {

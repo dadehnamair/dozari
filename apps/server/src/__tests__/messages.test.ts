@@ -123,3 +123,17 @@ describe('message center', () => {
     expect((await app.inject({ method: 'POST', url: '/admin/messages', payload: {} })).statusCode).toBe(401);
   });
 });
+
+describe('MessageCenter push channel', () => {
+  it('is unavailable without a push sender and sends through it when configured', async () => {
+    const store = createMemoryMessageStore({ users: ['u1', 'u2'] });
+    expect(new MessageCenter(store, null).channels().find((c) => c.channel === 'push')?.available).toBe(false);
+    const sent: string[] = [];
+    const push = { configured: true, notify: async (id: string, p: { title: string; body: string; tag: string }) => (sent.push(`${id}:${p.title}`), id === 'u1') };
+    const center = new MessageCenter(store, null, null, push);
+    expect(center.channels().find((c) => c.channel === 'push')?.available).toBe(true);
+    const r = await center.send({ title: 'سلام', body: 'b', audience: 'all', targetUserId: null, linkUserId: null }, ['push']);
+    expect(r).toMatchObject({ ok: true, recipients: { push: 1 } });
+    expect(sent.sort()).toEqual(['u1:سلام', 'u2:سلام']);
+  });
+});

@@ -39,6 +39,9 @@ const mask = (key: string | undefined): string | null => (key ? `••••${k
  * Best-effort like the other push services: a failure never throws.
  */
 export class IrnotiWebPush {
+  /** Synchronous snapshot taken by `refresh()` (boot and every save), for callers that check availability in a sync getter. */
+  configured = false;
+
   constructor(
     private readonly store: SettingsStore,
     private readonly envApiKey?: string,
@@ -52,6 +55,10 @@ export class IrnotiWebPush {
     const appId = raw[K.appId];
     const apiKey = raw[K.apiKey] || this.envApiKey;
     return publicKey && appId && apiKey ? { publicKey, appId, apiKey } : null;
+  }
+
+  async refresh(): Promise<void> {
+    this.configured = (await this.resolve()) !== null;
   }
 
   /** The key the page needs to load the SDK; null = this route is off. */
@@ -80,6 +87,7 @@ export class IrnotiWebPush {
     await put(K.publicKey, patch.publicKey);
     await put(K.appId, patch.appId);
     await put(K.apiKey, patch.apiKey);
+    await this.refresh();
   }
 
   /** Resolves true when irnoti accepted the send. No deep link: it is a `dozari://` address, which a browser cannot open. */

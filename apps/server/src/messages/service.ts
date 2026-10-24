@@ -16,12 +16,18 @@ export interface SmsTextSender {
   sendText(phone: string, text: string): Promise<void>;
 }
 
+/** App/browser push sender (irnoti); `notify` resolves true when the provider accepted the send. */
+export interface PushSender {
+  readonly configured: boolean;
+  notify(userId: string, payload: { title: string; body: string; tag: string }): Promise<boolean>;
+}
+
 /** A broadcast SMS body is capped: players pay for nothing, we do. */
 export const SMS_BROADCAST_MAX = 300;
 
 /**
- * The admin message center: one message, several channels. In-app inbox and Bale work; SMS, e-mail and push need
- * recipients (phone, e-mail, device tokens) and providers that do not exist yet, so they report themselves unavailable
+ * The admin message center: one message, several channels. In-app inbox, Bale, SMS (irnoti) and push (irnoti) work; e-mail needs
+ * recipients (e-mail addresses) and a provider that do not exist yet, so they report themselves unavailable
  * instead of pretending to send.
  */
 export class MessageCenter {
@@ -29,6 +35,7 @@ export class MessageCenter {
     private readonly store: MessageStore,
     private readonly bale: NotifyService | null,
     private readonly sms: SmsTextSender | null = null,
+    private readonly push: PushSender | null = null,
   ) {}
 
   channels(): ChannelInfo[] {
@@ -37,7 +44,7 @@ export class MessageCenter {
       { channel: 'bale', available: this.bale?.configured === true, reason: this.bale?.configured ? null : 'ربات بله تنظیم نشده (BALE_BOT_TOKEN)' },
       { channel: 'sms', available: this.sms?.textReady === true, reason: this.sms?.textReady ? null : 'درگاه پیامک با متن آزاد (irnoti) در بخش «پیامک» تنظیم نشده' },
       { channel: 'email', available: false, reason: 'ایمیل بازیکن‌ها هنوز گرفته نمی‌شود و سرویس ایمیل وصل نیست' },
-      { channel: 'push', available: false, reason: 'اعلان پوش هنوز راه‌اندازی نشده (بدون سرویس‌های گوگل، باید جایگزین انتخاب شود)' },
+      { channel: 'push', available: this.push?.configured === true, reason: this.push?.configured ? null : 'اعلان پوش irnoti تنظیم نشده (بخش «اعلان وب» یا IRNOTI_PUSH_APP_ID)' },
     ];
   }
 
@@ -78,6 +85,15 @@ export class MessageCenter {
         n += results.filter((r) => r.status === 'fulfilled').length;
       }
       recipients.sms = n;
+    }
+    if (wanted.includes('push') && this.push) {
+      // Counts sends irnoti accepted; a player with no registered browser/app simply gets nothing.
+      let n = 0;
+      for (let i = 0; i < audience.length; i += 8) {
+        const results = await Promise.all(audience.slice(i, i + 8).map((u) => this.push!.notify(u, { title: msg.title, body: msg.body, tag: `admin:${id}` }).catch(() => false)));
+        n += results.filter(Boolean).length;
+      }
+      recipients.push = n;
     }
     for (const [channel, n] of Object.entries(recipients) as [Channel, number][]) await this.store.setChannel(id, channel, n);
     return { ok: true, id, recipients };
