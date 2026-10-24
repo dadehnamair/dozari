@@ -22,6 +22,23 @@ describe('admin puzzles view', () => {
   });
 });
 
+describe('admin catalog similar products', () => {
+  const similarGroups = new Function(`${ADMIN_VIEWS1_JS.match(/function nameKeyFa[\s\S]*?\n}\n(?=VIEWS\.catalog)/)![0]}\nreturn similarGroups;`)() as (p: { id: string; nameFa: string }[]) => Record<string, { n: number; gid: string }>;
+
+  it('groups products by normalized name or name containment', () => {
+    const g = similarGroups([
+      { id: 'a', nameFa: 'تن ماهی' },
+      { id: 'b', nameFa: 'تن‌ماهی' },
+      { id: 'c', nameFa: 'کنسرو تن ماهی' },
+      { id: 'd', nameFa: 'شیر' },
+      { id: 'e', nameFa: 'شیر کاکائو' },
+    ]);
+    expect([g.a!.n, g.b!.n, g.c!.n]).toEqual([3, 3, 3]);
+    expect(g.a!.gid).toBe(g.c!.gid);
+    expect([g.d!.n, g.e!.n]).toEqual([1, 1]);
+  });
+});
+
 describe('admin age-track switches stay in step with the shared list', () => {
   it('the «رده‌های سنی» tab knows every kill-switch feature', async () => {
     const { TRACK_FEATURES } = await import('@dozari/shared');
